@@ -231,7 +231,7 @@ export default function LoginPage() {
         {/* Footer */}
         <p className="text-center text-sm text-gray-600 mt-6">
           Need help? Email{' '}
-          <a href="mailto:support@uklc.com" className="text-uklc-red hover:underline">
+          <a href="mailto:charlie@uklc.com" className="text-uklc-red hover:underline">
             support@uklc.com
           </a>
         </p>
