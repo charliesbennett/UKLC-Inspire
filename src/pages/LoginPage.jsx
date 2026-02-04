@@ -89,7 +89,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-uklc-red rounded-full mb-4">
             <GraduationCap className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-uklc-navy mb-2">UKLC Learn</h1>
+          <h1 className="text-3xl font-bold text-uklc-navy mb-2">UKLC Inspire</h1>
           <p className="text-gray-600">Continue Your English Journey</p>
         </div>
 
