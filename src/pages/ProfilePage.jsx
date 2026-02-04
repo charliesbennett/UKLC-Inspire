@@ -124,4 +124,98 @@ export default function ProfilePage({ user }) {
 
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm text-gray-600">Longest Streak:</sp
+              <span className="text-sm text-gray-600">Longest Streak:</span>
+              <span className="font-bold text-uklc-navy">{stats?.longest_streak || 0} days</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Member Since:</span>
+              <span className="font-bold text-uklc-navy">
+                {new Date(studentData?.created_at).toLocaleDateString()}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Badges */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+          <h2 className="text-xl font-bold text-uklc-navy mb-4 flex items-center gap-2">
+            <Award className="w-6 h-6 text-uklc-red" />
+            Badges ({badges.length} / 12)
+          </h2>
+
+          {badges.length > 0 ? (
+            <div className="grid grid-cols-4 gap-4">
+              {badges.map((badge, index) => (
+                <div key={index} className="text-center p-4 bg-uklc-blue rounded-lg">
+                  <div className="text-4xl mb-2">{badge.icon || '🏆'}</div>
+                  <p className="text-xs font-medium text-uklc-navy">{badge.name}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-600 text-center py-8">
+              Complete activities to earn badges! 🏆
+            </p>
+          )}
+        </div>
+
+        {/* Subscription */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+          <h2 className="text-xl font-bold text-uklc-navy mb-4">Subscription</h2>
+          
+          {studentData?.subscription_status === 'trial' ? (
+            <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="text-3xl">💎</div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-uklc-navy mb-1">Free Trial</h3>
+                  <p className="text-sm text-gray-600 mb-3">
+                    {trialDays} day{trialDays !== 1 ? 's' : ''} remaining
+                  </p>
+                  <button className="bg-uklc-red text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-opacity-90 transition">
+                    Subscribe Now
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="text-3xl">✅</div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-uklc-navy mb-1">Active Subscription</h3>
+                  <p className="text-sm text-gray-600">
+                    Your subscription is active
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Settings */}
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <h2 className="text-xl font-bold text-uklc-navy mb-4">Settings</h2>
+          
+          <div className="space-y-3">
+            <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition">
+              Change Password
+            </button>
+            <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition">
+              Email Preferences
+            </button>
+            <button className="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-50 transition">
+              Privacy Settings
+            </button>
+            <button
+              onClick={handleLogout}
+              className="w-full text-left px-4 py-3 rounded-lg hover:bg-red-50 text-red-600 transition"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
