@@ -232,7 +232,7 @@ export default function LoginPage() {
         <p className="text-center text-sm text-gray-600 mt-6">
           Need help? Email{' '}
           <a href="mailto:charlie@uklc.com" className="text-uklc-red hover:underline">
-            support@uklc.com
+            charlie@uklc.com
           </a>
         </p>
       </div>
