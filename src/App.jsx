@@ -12,6 +12,7 @@ function App() {
 
  useEffect(() => {
   checkUser()
+}, [])
   
   const { data } = supabase.auth.onAuthStateChange((event, session) => {
     setUser(session?.user || null)
