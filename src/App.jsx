@@ -13,13 +13,13 @@ function App() {
   useEffect(() => {
     checkUser()
     
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user || null)
-    })
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+  setUser(session?.user || null)
+})
 
-    return () => {
-      authListener?.subscription?.unsubscribe()
-    }
+return () => {
+  subscription?.unsubscribe()
+}
   }, [])
 
   const checkUser = async () => {
