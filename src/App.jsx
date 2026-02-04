@@ -10,20 +10,9 @@ function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
- useEffect(() => {
-  checkUser()
-}, [])
-  
-  const { data } = supabase.auth.onAuthStateChange((event, session) => {
-    setUser(session?.user || null)
-  })
-
-  return () => {
-    if (data && data.subscription) {
-      data.subscription.unsubscribe()
-    }
-  }
-}, [])
+  useEffect(() => {
+    checkUser()
+  }, [])
 
   const checkUser = async () => {
     try {
