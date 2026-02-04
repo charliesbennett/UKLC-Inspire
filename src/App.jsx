@@ -13,12 +13,12 @@ function App() {
   useEffect(() => {
     checkUser()
     
-    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+   const authSubscription = supabase.auth.onAuthStateChange((event, session) => {
   setUser(session?.user || null)
 })
 
 return () => {
-  subscription?.unsubscribe()
+  authSubscription?.data?.subscription?.unsubscribe()
 }
   }, [])
 
