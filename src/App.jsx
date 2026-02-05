@@ -5,7 +5,7 @@ import LoginPage from './pages/LoginPage'
 import Dashboard from './pages/Dashboard'
 import TopicView from './pages/TopicView'
 import ProfilePage from './pages/ProfilePage'
-
+import ActivityPlayer from './pages/ActivityPlayer'
 function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -39,6 +39,7 @@ function App() {
         <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={user ? <Dashboard user={user} /> : <Navigate to="/login" replace />} />
         <Route path="/topic/:topicId" element={user ? <TopicView user={user} /> : <Navigate to="/login" replace />} />
+        <Route path="/activity/:activityId" element={user ? <ActivityPlayer user={user} /> : <Navigate to="/login" replace />} />
         <Route path="/profile" element={user ? <ProfilePage user={user} /> : <Navigate to="/login" replace />} />
         <Route path="/" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
       </Routes>
