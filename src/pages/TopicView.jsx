@@ -126,11 +126,11 @@ export default function TopicView({ user }) {
               
               <div className="text-right">
                 <button
-                  onClick={() => alert('Phase 2 Coming Soon!\n\nActivity players will be added next.')}
-                  className="px-6 py-2 bg-uklc-red text-white rounded-lg font-medium hover:bg-opacity-90 transition"
-                >
-                  Start
-                </button>
+  onClick={() => navigate(`/activity/${activity.id}`)}
+  className="px-6 py-2 bg-uklc-red text-white rounded-lg font-medium hover:bg-opacity-90 transition"
+>
+  Start
+</button>
               </div>
             </div>
           ))}
