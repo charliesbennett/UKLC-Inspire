@@ -59,7 +59,19 @@ export default function ProfilePage({ user }) {
     )
   }
 
-  const badges = JSON.parse(stats?.badges || '[]')
+  let badges = []
+try {
+  if (stats?.badges) {
+    if (typeof stats.badges === 'string') {
+      badges = JSON.parse(stats.badges)
+    } else if (Array.isArray(stats.badges)) {
+      badges = stats.badges
+    }
+  }
+} catch (e) {
+  console.error('Badge parse error:', e)
+  badges = []
+}
   const trialDays = getTrialDaysRemaining()
 
   return (
