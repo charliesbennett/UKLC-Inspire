@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card.jsx';
-import { Button } from '@/components/ui/button.jsx';
-import { Progress } from '@/components/ui/progress.jsx';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, RotateCcw, Check } from 'lucide-react';
 
 const flashcards = [
