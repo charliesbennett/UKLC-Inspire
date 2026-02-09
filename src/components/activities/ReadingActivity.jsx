@@ -133,7 +133,8 @@ const questions = [
   }
 ];
 
-export default function ReadingActivity() {
+// ── Changed: accept onComplete and onProgress props ──
+export default function ReadingActivity({ onComplete, onProgress }) {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -150,6 +151,12 @@ export default function ReadingActivity() {
       newAnswers[currentQuestion] = selectedAnswer;
       setAnswers(newAnswers);
       setShowFeedback(true);
+
+      // ── Added: save partial progress after each answer ──
+      const correctSoFar = newAnswers.filter((a, i) => a === questions[i].correctAnswer).length;
+      const answeredSoFar = newAnswers.filter(a => a !== null).length;
+      const partialScore = Math.round((correctSoFar / questions.length) * 100);
+      onProgress?.(partialScore);
     }
   };
 
@@ -159,6 +166,12 @@ export default function ReadingActivity() {
       setSelectedAnswer(answers[currentQuestion + 1]);
       setShowFeedback(false);
     } else {
+      // ── Added: call onComplete with final score ──
+      const finalScore = Math.round(
+        (answers.filter((a, i) => a === questions[i].correctAnswer).length / questions.length) * 100
+      );
+      onComplete?.(finalScore);
+
       setShowResults(true);
     }
   };
