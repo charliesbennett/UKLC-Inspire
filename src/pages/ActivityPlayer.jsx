@@ -12,7 +12,7 @@ export default function ActivityPlayer({ user }) {
   const navigate = useNavigate()
   const [activity, setActivity] = useState(null)
   const [loading, setLoading] = useState(true)
- 
+
   useEffect(() => {
     loadActivity()
   }, [activityId])
