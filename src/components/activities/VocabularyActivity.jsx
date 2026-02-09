@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card.jsx';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, RotateCcw, Check } from 'lucide-react';
