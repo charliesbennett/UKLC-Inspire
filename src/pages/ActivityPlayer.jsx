@@ -129,11 +129,11 @@ export default function ActivityPlayer({ user }) {
   <ReadingActivity />
 )}
 
-{activity.activity_type === 'grammar' && (
+{activity.activity_type === 'grammar' && activity.id === 6 && (
   <GrammarActivity />
 )}
 
-{activity.activity_type === 'project' && (
+{activity.activity_type === 'grammar' && activity.id === 10 && (
   <RestaurantDesignActivity />
 )}
 
