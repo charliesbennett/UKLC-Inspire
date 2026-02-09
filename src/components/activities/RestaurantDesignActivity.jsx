@@ -19,7 +19,8 @@ const themeIdeas = [
   "Your own original idea"
 ];
 
-export default function RestaurantDesignActivity() {
+// ── Changed: accept onComplete and onProgress props ──
+export default function RestaurantDesignActivity({ onComplete, onProgress }) {
   const [currentStep, setCurrentStep] = useState('intro');
   const [design, setDesign] = useState({
     name: '',
@@ -51,11 +52,32 @@ export default function RestaurantDesignActivity() {
     }
   };
 
+  // ── Helper: calculate completion score based on filled fields ──
+  const calculateScore = () => {
+    const checks = [
+      design.name.trim().length > 0,              // named their restaurant
+      design.theme.trim().length > 0,              // chose a theme
+      design.location.trim().length > 0,           // picked a location
+      design.specialFeatures.trim().length > 20,   // wrote meaningful features
+      design.targetAudience.trim().length > 0,     // identified audience
+      design.foodType.trim().length > 0,           // chose food type
+      design.pitch.trim().length > 30,             // wrote a real pitch
+      design.posterIdea.trim().length > 10,        // described poster idea
+    ];
+    return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  };
+
   const nextStep = () => {
     const steps = ['intro', 'basic', 'features', 'marketing', 'review'];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex < steps.length - 1) {
-      setCurrentStep(steps[currentIndex + 1]);
+      const next = steps[currentIndex + 1];
+      setCurrentStep(next);
+
+      // ── Added: save partial progress when moving between steps ──
+      if (next !== 'intro') {
+        onProgress?.(calculateScore());
+      }
     }
   };
 
@@ -65,6 +87,12 @@ export default function RestaurantDesignActivity() {
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1]);
     }
+  };
+
+  // ── Added: handle final submission ──
+  const handleFinish = () => {
+    const finalScore = calculateScore();
+    onComplete?.(finalScore);
   };
 
   const renderIntro = () => (
@@ -350,10 +378,9 @@ export default function RestaurantDesignActivity() {
           </ul>
         </div>
 
-        <Button className="w-full" onClick={() => {
-          alert('Your restaurant design has been saved! In the full app, you could share this with your classmates.');
-        }}>
-          Save & Share Design
+        {/* ── Changed: calls onComplete instead of alert ── */}
+        <Button className="w-full" onClick={handleFinish}>
+          Save & Complete Design
         </Button>
       </CardContent>
     </Card>
