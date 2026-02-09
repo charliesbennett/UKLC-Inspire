@@ -94,7 +94,8 @@ const exercises = [
   }
 ];
 
-export default function GrammarActivity() {
+// ── Changed: accept onComplete and onProgress props ──
+export default function GrammarActivity({ onComplete, onProgress }) {
   const [currentExercise, setCurrentExercise] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
@@ -126,13 +127,17 @@ export default function GrammarActivity() {
 
       const newResults = [...results];
       if (exercise.type === 'opinion') {
-        // For opinion questions, check if they wrote something reasonable
         newResults[currentExercise] = userAnswer.trim().length > 10;
       } else {
         newResults[currentExercise] = checkAnswer(userAnswer, exercise.correctAnswer);
       }
       setResults(newResults);
       setShowFeedback(true);
+
+      // ── Added: save partial progress after each answer ──
+      const correctSoFar = newResults.filter(r => r).length;
+      const partialScore = Math.round((correctSoFar / exercises.length) * 100);
+      onProgress?.(partialScore);
     }
   };
 
@@ -143,6 +148,10 @@ export default function GrammarActivity() {
       setShowFeedback(false);
       setShowHint(false);
     } else {
+      // ── Added: call onComplete with final score ──
+      const finalScore = Math.round((results.filter(r => r).length / exercises.length) * 100);
+      onComplete?.(finalScore);
+
       setShowResults(true);
     }
   };
