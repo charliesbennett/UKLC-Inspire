@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card.jsx';
-import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx';
+import { Button } from '@/components/ui/button.jsx';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group.jsx';
+import { Label } from '@/components/ui/label.jsx';
+import { Progress } from '@/components/ui/progress.jsx';
 import { CheckCircle, XCircle, ChevronRight } from 'lucide-react';
 
 const restaurants = [
