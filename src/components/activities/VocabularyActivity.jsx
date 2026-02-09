@@ -1,20 +1,10 @@
-'use client';
-
 import { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent } from '@/components/ui/card.jsx';
+import { Button } from '@/components/ui/button.jsx';
+import { Progress } from '@/components/ui/progress.jsx';
 import { ChevronLeft, ChevronRight, RotateCcw, Check } from 'lucide-react';
 
-interface Flashcard {
-  id: number;
-  word: string;
-  definition: string;
-  example: string;
-  image?: string;
-}
-
-const flashcards: Flashcard[] = [
+const flashcards = [
   {
     id: 1,
     word: "atmosphere",
@@ -92,7 +82,7 @@ const flashcards: Flashcard[] = [
 export default function VocabularyActivity() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
-  const [knownCards, setKnownCards] = useState<Set<number>>(new Set());
+  const [knownCards, setKnownCards] = useState(new Set());
   const [showResults, setShowResults] = useState(false);
 
   const currentCard = flashcards[currentIndex];
@@ -119,7 +109,9 @@ export default function VocabularyActivity() {
   };
 
   const handleMarkKnown = () => {
-    setKnownCards(new Set(knownCards).add(currentCard.id));
+    const newKnownCards = new Set(knownCards);
+    newKnownCards.add(currentCard.id);
+    setKnownCards(newKnownCards);
     handleNext();
   };
 

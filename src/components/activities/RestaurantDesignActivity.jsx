@@ -1,27 +1,11 @@
-'use client';
-
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Lightbulb, ChevronRight, ChevronLeft, CheckCircle } from 'lucide-react';
-
-interface RestaurantDesign {
-  name: string;
-  theme: string;
-  location: string;
-  specialFeatures: string;
-  targetAudience: string;
-  foodType: string;
-  pitch: string;
-  posterIdea: string;
-}
-
-type Step = 'intro' | 'basic' | 'features' | 'marketing' | 'review';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx';
+import { Button } from '@/components/ui/button.jsx';
+import { Input } from '@/components/ui/input.jsx';
+import { Textarea } from '@/components/ui/textarea.jsx';
+import { Label } from '@/components/ui/label.jsx';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group.jsx';
+import { Alert, AlertDescription } from '@/components/ui/alert.jsx';
 
 const themeIdeas = [
   "Underwater dining",
@@ -36,8 +20,8 @@ const themeIdeas = [
 ];
 
 export default function RestaurantDesignActivity() {
-  const [currentStep, setCurrentStep] = useState<Step>('intro');
-  const [design, setDesign] = useState<RestaurantDesign>({
+  const [currentStep, setCurrentStep] = useState('intro');
+  const [design, setDesign] = useState({
     name: '',
     theme: '',
     location: '',
@@ -48,7 +32,7 @@ export default function RestaurantDesignActivity() {
     posterIdea: ''
   });
 
-  const updateDesign = (field: keyof RestaurantDesign, value: string) => {
+  const updateDesign = (field, value) => {
     setDesign({ ...design, [field]: value });
   };
 
@@ -68,7 +52,7 @@ export default function RestaurantDesignActivity() {
   };
 
   const nextStep = () => {
-    const steps: Step[] = ['intro', 'basic', 'features', 'marketing', 'review'];
+    const steps = ['intro', 'basic', 'features', 'marketing', 'review'];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex < steps.length - 1) {
       setCurrentStep(steps[currentIndex + 1]);
@@ -76,7 +60,7 @@ export default function RestaurantDesignActivity() {
   };
 
   const previousStep = () => {
-    const steps: Step[] = ['intro', 'basic', 'features', 'marketing', 'review'];
+    const steps = ['intro', 'basic', 'features', 'marketing', 'review'];
     const currentIndex = steps.indexOf(currentStep);
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1]);
@@ -367,7 +351,6 @@ export default function RestaurantDesignActivity() {
         </div>
 
         <Button className="w-full" onClick={() => {
-          // In a real app, this would save to database or allow sharing
           alert('Your restaurant design has been saved! In the full app, you could share this with your classmates.');
         }}>
           Save & Share Design
@@ -381,20 +364,20 @@ export default function RestaurantDesignActivity() {
       {/* Progress indicator */}
       <div className="mb-6">
         <div className="flex justify-between items-center mb-2">
-          {(['intro', 'basic', 'features', 'marketing', 'review'] as Step[]).map((step, index) => (
+          {['intro', 'basic', 'features', 'marketing', 'review'].map((step, index) => (
             <div key={step} className="flex items-center flex-1">
               <div className={`
                 w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold
                 ${currentStep === step ? 'bg-blue-600 text-white' : 
-                  index < (['intro', 'basic', 'features', 'marketing', 'review'] as Step[]).indexOf(currentStep) 
+                  index < ['intro', 'basic', 'features', 'marketing', 'review'].indexOf(currentStep) 
                     ? 'bg-green-500 text-white' 
                     : 'bg-gray-200 text-gray-600'}
               `}>
-                {index < (['intro', 'basic', 'features', 'marketing', 'review'] as Step[]).indexOf(currentStep) ? '✓' : index + 1}
+                {index < ['intro', 'basic', 'features', 'marketing', 'review'].indexOf(currentStep) ? '✓' : index + 1}
               </div>
               {index < 4 && (
                 <div className={`flex-1 h-1 mx-2 ${
-                  index < (['intro', 'basic', 'features', 'marketing', 'review'] as Step[]).indexOf(currentStep)
+                  index < ['intro', 'basic', 'features', 'marketing', 'review'].indexOf(currentStep)
                     ? 'bg-green-500'
                     : 'bg-gray-200'
                 }`} />

@@ -1,24 +1,12 @@
-'use client';
-
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx';
+import { Button } from '@/components/ui/button.jsx';
+import { Input } from '@/components/ui/input.jsx';
+import { Textarea } from '@/components/ui/textarea.jsx';
+import { Progress } from '@/components/ui/progress.jsx';
 import { CheckCircle, XCircle, ChevronRight, Lightbulb } from 'lucide-react';
 
-interface GrammarExercise {
-  id: number;
-  type: 'fill-blank' | 'sentence-building' | 'correction' | 'opinion';
-  question: string;
-  options?: string[];
-  correctAnswer: string | string[];
-  explanation: string;
-  hint?: string;
-}
-
-const exercises: GrammarExercise[] = [
+const exercises = [
   {
     id: 1,
     type: 'fill-blank',
@@ -111,14 +99,14 @@ export default function GrammarActivity() {
   const [userAnswer, setUserAnswer] = useState('');
   const [showFeedback, setShowFeedback] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [answers, setAnswers] = useState<string[]>(new Array(exercises.length).fill(''));
-  const [results, setResults] = useState<boolean[]>(new Array(exercises.length).fill(false));
+  const [answers, setAnswers] = useState(new Array(exercises.length).fill(''));
+  const [results, setResults] = useState(new Array(exercises.length).fill(false));
   const [showResults, setShowResults] = useState(false);
 
   const exercise = exercises[currentExercise];
   const progress = ((currentExercise + 1) / exercises.length) * 100;
 
-  const checkAnswer = (answer: string, correct: string | string[]): boolean => {
+  const checkAnswer = (answer, correct) => {
     const normalizedAnswer = answer.toLowerCase().trim().replace(/[.,!?;]$/g, '');
     
     if (Array.isArray(correct)) {

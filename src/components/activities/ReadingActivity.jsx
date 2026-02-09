@@ -1,28 +1,12 @@
-'use client';
-
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx';
+import { Button } from '@/components/ui/button.jsx';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group.jsx';
+import { Label } from '@/components/ui/label.jsx';
+import { Progress } from '@/components/ui/progress.jsx';
 import { CheckCircle, XCircle, ChevronRight } from 'lucide-react';
 
-interface Restaurant {
-  name: string;
-  description: string;
-  location: string;
-}
-
-interface Question {
-  id: number;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-  explanation: string;
-}
-
-const restaurants: Restaurant[] = [
+const restaurants = [
   {
     name: "Karen's Diner",
     description: "A themed restaurant where deliberately rude service is part of the experience. Staff play exaggeratedly grumpy 'Karens,' insulting customers, enforcing silly rules, and delivering sarcastic banter alongside classic comfort food like burgers and fries. It's designed as interactive comedy dining, fun for those who enjoy playful insults and chaos, but not for anyone expecting traditional politeness.",
@@ -50,7 +34,7 @@ const restaurants: Restaurant[] = [
   }
 ];
 
-const questions: Question[] = [
+const questions = [
   {
     id: 1,
     question: "What makes Karen's Diner unique?",
@@ -151,12 +135,12 @@ const questions: Question[] = [
 
 export default function ReadingActivity() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
-  const [answers, setAnswers] = useState<(number | null)[]>(new Array(questions.length).fill(null));
+  const [answers, setAnswers] = useState(new Array(questions.length).fill(null));
   const [showResults, setShowResults] = useState(false);
 
-  const handleAnswerSelect = (answerIndex: number) => {
+  const handleAnswerSelect = (answerIndex) => {
     setSelectedAnswer(answerIndex);
   };
 
