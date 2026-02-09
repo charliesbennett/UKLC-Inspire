@@ -3,7 +3,10 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { ArrowLeft } from 'lucide-react'
 import QuizPlayer from '../components/QuizPlayer'
-
+import VocabularyActivity from '../components/activities/VocabularyActivity'
+import ReadingActivity from '../components/activities/ReadingActivity'
+import GrammarActivity from '../components/activities/GrammarActivity'
+import RestaurantDesignActivity from '../components/activities/RestaurantDesignActivity'
 export default function ActivityPlayer({ user }) {
   const { activityId } = useParams()
   const navigate = useNavigate()
@@ -113,28 +116,43 @@ export default function ActivityPlayer({ user }) {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {activity.activity_type === 'quiz' && (
-          <QuizPlayer activity={activity} onComplete={handleComplete} />
-        )}
-        
-        {activity.activity_type !== 'quiz' && (
-          <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
-            <div className="text-6xl mb-4">🚧</div>
-            <h2 className="text-2xl font-bold text-uklc-navy mb-4">
-              Coming Soon!
-            </h2>
-            <p className="text-gray-600 mb-6">
-              This activity type ({activity.activity_type}) will be available soon.
-            </p>
-            <button
-              onClick={() => navigate(-1)}
-              className="px-6 py-3 bg-uklc-red text-white rounded-lg font-medium hover:bg-opacity-90 transition"
-            >
-              Back to Topic
-            </button>
-          </div>
-        )}
+      {activity.activity_type === 'vocabulary' && (
+  <VocabularyActivity />
+)}
+
+{activity.activity_type === 'reading' && (
+  <ReadingActivity />
+)}
+
+{activity.activity_type === 'grammar' && (
+  <GrammarActivity />
+)}
+
+{activity.activity_type === 'project' && (
+  <RestaurantDesignActivity />
+)}
+
+{activity.activity_type !== 'quiz' && 
+ activity.activity_type !== 'vocabulary' && 
+ activity.activity_type !== 'reading' && 
+ activity.activity_type !== 'grammar' && 
+ activity.activity_type !== 'project' && (
+  <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8 text-center">
+    <div className="text-6xl mb-4">🚧</div>
+    <h2 className="text-2xl font-bold text-uklc-navy mb-4">
+      Coming Soon!
+    </h2>
+    <p className="text-gray-600 mb-6">
+      This activity type ({activity.activity_type}) will be available soon.
+    </p>
+    <button
+      onClick={() => navigate(-1)}
+      className="px-6 py-3 bg-uklc-red text-white rounded-lg font-medium hover:bg-opacity-90 transition"
+    >
+      Back to Topic
+    </button>
+  </div>
+)}
       </main>
     </div>
   )
