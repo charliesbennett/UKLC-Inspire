@@ -1,4 +1,3 @@
-```javascript
 import { useState, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -12,7 +11,7 @@ const XP_REWARDS = {
 
 // Badge definitions
 const BADGES = {
-  first_activity: { name: 'First Steps', condition: (stats) => stats.total_activities >= 1 },
+  first_activity: { name: 'First Steps', condition: (stats) => stats.total_completed >= 1 },
   streak_3: { name: 'On Fire', condition: (stats) => stats.current_streak >= 3 },
   streak_7: { name: 'Week Warrior', condition: (stats) => stats.current_streak >= 7 },
   perfect_score: { name: 'Perfectionist', condition: (stats) => stats.last_score === 100 },
@@ -41,39 +40,44 @@ export function useProgressTracker(studentId) {
     startTimeRef.current = null;
   }, []);
 
-  // Save progress to student_progress table
-  const saveProgress = useCallback(async (activityId, { completed, score }) => {
+  // ── Internal: raw upsert without touching saving/error state ──
+  // Used by completeActivity which manages its own setSaving lifecycle
+  const _upsertProgress = useCallback(async (activityId, { completed, score }) => {
     if (!studentId || !activityId) return null;
 
     const timeSpent = startTimeRef.current
       ? Math.round((Date.now() - startTimeRef.current) / 1000)
       : 0;
 
-    const progressData = {
-      student_id: studentId,
-      activity_id: activityId,
-      completed: completed || false,
-      score: score || 0,
-      time_spent_seconds: timeSpent,
-      attempts: attemptsRef.current,
-    };
+    const { data, error: dbError } = await supabase
+      .from('student_progress')
+      .upsert(
+        {
+          student_id: studentId,
+          activity_id: activityId,
+          completed: completed || false,
+          score: score || 0,
+          time_spent_seconds: timeSpent,
+          attempts: attemptsRef.current,
+        },
+        { onConflict: 'student_id,activity_id' }
+      )
+      .select()
+      .single();
 
+    if (dbError) throw dbError;
+
+    console.log(`[Progress] Saved progress for ${activityId}:`, data);
+    return data;
+  }, [studentId]);
+
+  // Save progress to student_progress table (standalone, with saving state)
+  const saveProgress = useCallback(async (activityId, { completed, score }) => {
     setSaving(true);
     setError(null);
 
     try {
-      // Upsert: update if exists, insert if new
-      const { data, error: dbError } = await supabase
-        .from('student_progress')
-        .upsert(progressData, {
-          onConflict: 'student_id,activity_id',
-        })
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
-
-      console.log(`[Progress] Saved progress for ${activityId}:`, data);
+      const data = await _upsertProgress(activityId, { completed, score });
       return data;
     } catch (err) {
       console.error('[Progress] Save failed:', err);
@@ -82,12 +86,30 @@ export function useProgressTracker(studentId) {
     } finally {
       setSaving(false);
     }
-  }, [studentId]);
+  }, [_upsertProgress]);
 
   // Update partial progress (e.g., mid-quiz)
   const updateProgress = useCallback(async (activityId, score) => {
     return saveProgress(activityId, { completed: false, score });
   }, [saveProgress]);
+
+  // ── Helper: count unique completed activities (client-side dedupe) ──
+  const _countUniqueCompleted = useCallback(async () => {
+    const { data: completedRows, error: countError } = await supabase
+      .from('student_progress')
+      .select('activity_id')
+      .eq('student_id', studentId)
+      .eq('completed', true);
+
+    if (countError) throw countError;
+
+    // Dedupe to get truly unique activity count
+    const uniqueIds = new Set(completedRows?.map((r) => r.activity_id));
+    return {
+      uniqueActivities: uniqueIds.size,
+      totalCompleted: completedRows?.length || 0,
+    };
+  }, [studentId]);
 
   // Complete activity: save progress + update stats + check badges
   const completeActivity = useCallback(async (activityId, activityType, score) => {
@@ -95,8 +117,8 @@ export function useProgressTracker(studentId) {
     setError(null);
 
     try {
-      // 1. Save final progress
-      const progress = await saveProgress(activityId, { completed: true, score });
+      // 1. Save final progress (uses internal fn — no double setSaving)
+      const progress = await _upsertProgress(activityId, { completed: true, score });
       if (!progress) throw new Error('Failed to save progress');
 
       // 2. Calculate XP earned
@@ -128,20 +150,16 @@ export function useProgressTracker(studentId) {
         longestStreak = Math.max(newStreak, currentStats.longest_streak || 0);
       }
 
-      // 5. Count unique activities completed
-      const { count: uniqueActivities } = await supabase
-        .from('student_progress')
-        .select('activity_id', { count: 'exact', head: true })
-        .eq('student_id', studentId)
-        .eq('completed', true);
+      // 5. Count unique + total completed activities (properly deduped)
+      const { uniqueActivities, totalCompleted } = await _countUniqueCompleted();
 
       // 6. Check for new badges
       const statsForBadgeCheck = {
         total_xp: (currentStats?.total_xp || 0) + xpEarned,
         current_streak: newStreak,
         last_score: score,
-        total_activities: (currentStats?.total_activities || 0) + 1,
-        unique_activities: uniqueActivities || 0,
+        total_completed: totalCompleted,
+        unique_activities: uniqueActivities,
       };
 
       const existingBadges = currentStats?.badges || [];
@@ -188,7 +206,7 @@ export function useProgressTracker(studentId) {
     } finally {
       setSaving(false);
     }
-  }, [studentId, saveProgress]);
+  }, [studentId, _upsertProgress, _countUniqueCompleted]);
 
   // Fetch existing progress for an activity
   const getProgress = useCallback(async (activityId) => {
@@ -240,4 +258,4 @@ export function useProgressTracker(studentId) {
     getStats,
   };
 }
-```
+
