@@ -79,7 +79,8 @@ const flashcards = [
   }
 ];
 
-export default function VocabularyActivity() {
+// ── Changed: accept onComplete and onProgress props ──
+export default function VocabularyActivity({ onComplete, onProgress }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [knownCards, setKnownCards] = useState(new Set());
@@ -93,6 +94,13 @@ export default function VocabularyActivity() {
       setCurrentIndex(currentIndex + 1);
       setIsFlipped(false);
     } else {
+      // ── Changed: calculate score and call onComplete ──
+      const finalScore = Math.round((knownCards.size / flashcards.length) * 100);
+
+      if (onComplete) {
+        onComplete(finalScore);
+      }
+
       setShowResults(true);
     }
   };
@@ -112,6 +120,11 @@ export default function VocabularyActivity() {
     const newKnownCards = new Set(knownCards);
     newKnownCards.add(currentCard.id);
     setKnownCards(newKnownCards);
+
+    // ── Added: save partial progress ──
+    const partialScore = Math.round((newKnownCards.size / flashcards.length) * 100);
+    onProgress?.(partialScore);
+
     handleNext();
   };
 
