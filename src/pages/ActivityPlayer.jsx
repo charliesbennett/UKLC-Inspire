@@ -114,11 +114,16 @@ export default function ActivityPlayer({ user }) {
           </button>
           <h1 className="text-2xl font-bold text-uklc-navy">{activity.title}</h1>
         </div>
-      </header>
+    </header>
 
-      {activity.activity_type === 'vocabulary' && (
-  <VocabularyActivity />
-)}
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {activity.activity_type === 'quiz' && (
+          <QuizPlayer activity={activity} onComplete={handleComplete} />
+        )}
+        
+        {activity.activity_type === 'vocabulary' && (
+          <VocabularyActivity />
+        )}
 
 {activity.activity_type === 'reading' && (
   <ReadingActivity />
