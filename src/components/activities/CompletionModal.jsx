@@ -89,4 +89,3 @@ export default function CompletionModal({ score, xpEarned, newBadges, onContinue
     </div>
   );
 }
-```
