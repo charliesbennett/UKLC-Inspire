@@ -1,196 +1,178 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { supabase } from '../supabaseClient'
-import { GraduationCap, Flame, Star, Trophy, ArrowRight, User, LogOut } from 'lucide-react'
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
+import { colors as b, fonts } from '../styles/theme';
+import { PageShell, ProgressBar } from '../components/ui/SharedUI';
+import BrandPatterns from '../components/ui/BrandPatterns';
+import UKLCLogo from '../components/ui/UKLCLogo';
+import UKLCIcon from '../components/ui/UKLCIcon';
 
-export default function Dashboard({ user }) {
-  const navigate = useNavigate()
-  const [studentData, setStudentData] = useState(null)
-  const [stats, setStats] = useState({ total_xp: 0, current_streak: 0, badges: [] })
-  const [topics, setTopics] = useState([])
-  const [loading, setLoading] = useState(true)
+const StatCard = ({ iconType, value, label, accentBg, dark }) => (
+  <div style={{
+    flex: 1, padding: '16px 10px', borderRadius: 16, textAlign: 'center',
+    background: dark ? 'rgba(255,255,255,0.05)' : accentBg,
+    border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'transparent'}`,
+    transition: 'transform 0.2s',
+  }}>
+    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 6 }}>
+      <UKLCIcon type={iconType} size={28} />
+    </div>
+    <div style={{ fontSize: 22, fontWeight: 800, color: dark ? b.greyBlue : b.blue, fontFamily: fonts.heading }}>{value}</div>
+    <div style={{ fontSize: 10, color: dark ? '#7B8FA3' : '#5A6B7D', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginTop: 2, fontFamily: fonts.body }}>{label}</div>
+  </div>
+);
 
-  useEffect(() => {
-    if (user) {
-      loadDashboardData()
-    }
-  }, [user])
+const TopicCard = ({ iconType, title, description, progress, dark, onClick }) => {
+  const [h, setH] = useState(false);
+  return (
+    <div onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+      style={{
+        padding: '18px 20px', borderRadius: 18, cursor: 'pointer',
+        background: dark
+          ? h ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.03)'
+          : h ? b.white : `${b.greyBlue}88`,
+        border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : b.greyBlue}`,
+        transition: 'all 0.25s', transform: h ? 'translateY(-2px)' : 'none',
+        boxShadow: h ? (dark ? '0 8px 24px rgba(0,0,0,0.3)' : '0 8px 24px rgba(28,48,72,0.08)') : 'none',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+        <div style={{
+          width: 52, height: 52, borderRadius: 14, flexShrink: 0,
+          background: dark ? 'rgba(255,255,255,0.06)' : b.pink + '66',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <UKLCIcon type={iconType} size={28} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: dark ? b.greyBlue : b.blue, fontFamily: fonts.heading, marginBottom: 3 }}>{title}</div>
+          <div style={{ fontSize: 13, color: dark ? '#7B8FA3' : '#5A6B7D', lineHeight: 1.4, fontFamily: fonts.body }}>{description}</div>
+          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ flex: 1 }}><ProgressBar value={progress} dark={dark} /></div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: dark ? '#7B8FA3' : '#5A6B7D', fontFamily: fonts.body }}>{progress}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-  const loadDashboardData = async () => {
-    try {
-      // Load student profile
-      const { data: student, error: studentError } = await supabase
-        .from('students')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (studentError) throw studentError
-      setStudentData(student)
-
-      // Load student stats
-      const { data: statsData, error: statsError } = await supabase
-        .from('student_stats')
-        .select('*')
-        .eq('student_id', user.id)
-        .single()
-
-      if (statsError) {
-        console.log('Stats error:', statsError)
-      } else if (statsData) {
-        // Safely parse badges
-        let badgesArray = []
-        try {
-          if (statsData.badges) {
-            if (typeof statsData.badges === 'string') {
-              badgesArray = JSON.parse(statsData.badges)
-            } else if (Array.isArray(statsData.badges)) {
-              badgesArray = statsData.badges
-            }
-          }
-        } catch (e) {
-          console.error('Badge parse error:', e)
-          badgesArray = []
-        }
-
-        setStats({
-          total_xp: statsData.total_xp || 0,
-          current_streak: statsData.current_streak || 0,
-          badges: badgesArray
-        })
-      }
-
-      // Load topics
-      const { data: topicsData, error: topicsError } = await supabase
-        .from('topics')
-        .select('*')
-        .eq('level', student.level)
-        .eq('age_group', student.age_group)
-        .eq('is_published', true)
-        .order('order_number')
-
-      if (topicsError) throw topicsError
-      setTopics(topicsData || [])
-
-    } catch (error) {
-      console.error('Error loading dashboard:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+export default function Dashboard({ user, dark, toggleTheme }) {
+  const navigate = useNavigate();
+  const name = user?.user_metadata?.full_name || 'Student';
+  const greeting = (() => { const h = new Date().getHours(); return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'; })();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-  }
+    await supabase.auth.signOut();
+  };
 
-  const getTopicIcon = (slug) => {
-    const icons = {
-      'food-restaurants': '🍽️',
-      'music': '🎵',
-      'travel': '✈️',
-      'ai-technology': '🤖'
-    }
-    return icons[slug] || '📚'
-  }
+  const topics = [
+    { id: 'food-restaurants', iconType: 'food', title: 'Food & Restaurants', description: 'Vocabulary, reading & grammar for dining out', progress: 45 },
+    { id: 'music-culture', iconType: 'music', title: 'Music & Culture', description: 'Express yourself through music and the arts', progress: 0 },
+    { id: 'travel-adventure', iconType: 'plane', title: 'Travel & Adventure', description: 'Navigate the world with confident English', progress: 0 },
+    { id: 'ai-technology', iconType: 'robot', title: 'AI & Technology', description: 'Discuss the future in fluent English', progress: 0 },
+  ];
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-uklc-red"></div>
-      </div>
-    )
-  }
+  const navItems = [
+    { icon: 'home', label: 'Home', active: true },
+    { icon: 'chart', label: 'Progress', active: false },
+    { icon: 'badge', label: 'Badges', active: false },
+    { icon: 'user', label: 'Profile', active: false },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <PageShell dark={dark}>
       {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <GraduationCap className="w-8 h-8 text-uklc-red" />
-            <span className="text-xl font-bold text-uklc-navy">UKLC Inspire</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/profile')}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition"
-            >
-              <User className="w-5 h-5 text-uklc-navy" />
-              <span className="text-sm text-uklc-navy hidden sm:inline">Profile</span>
-            </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-uklc-red transition"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
+      <div style={{
+        padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : b.greyBlue}`,
+      }}>
+        <UKLCLogo dark={dark} size="small" />
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={toggleTheme} style={{
+            width: 34, height: 34, borderRadius: 10, border: 'none', cursor: 'pointer',
+            background: dark ? 'rgba(255,255,255,0.06)' : b.greyBlue,
+            fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: dark ? b.greyBlue : b.blue,
+          }}>{dark ? '☀' : '☾'}</button>
+          <button onClick={handleLogout} style={{
+            width: 34, height: 34, borderRadius: 10, border: 'none', cursor: 'pointer',
+            background: dark ? 'rgba(255,255,255,0.06)' : b.greyBlue,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <UKLCIcon type="user" size={16} color={dark ? '#7B8FA3' : b.blue} />
+          </button>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-uklc-navy mb-2">
-            Welcome back, {studentData?.name?.split(' ')[0] || 'Student'}! 🌟
-          </h1>
-          <p className="text-gray-600">
-            Level {studentData?.level || 2} (B1-B2) | Age {studentData?.age_group || '13-16'}
-          </p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <h2 className="text-xl font-bold text-uklc-navy mb-4">YOUR PROGRESS</h2>
-          
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-4 bg-uklc-blue rounded-lg">
-              <div className="flex items-center justify-center gap-1 text-2xl font-bold text-uklc-navy mb-1">
-                <Flame className="w-6 h-6 text-orange-500" />
-                {stats.current_streak}
-              </div>
-              <p className="text-xs text-gray-600">Current Streak</p>
-            </div>
-            <div className="text-center p-4 bg-uklc-blue rounded-lg">
-              <div className="flex items-center justify-center gap-1 text-2xl font-bold text-uklc-navy mb-1">
-                <Star className="w-6 h-6 text-yellow-500" />
-                {stats.total_xp}
-              </div>
-              <p className="text-xs text-gray-600">Total XP</p>
-            </div>
-            <div className="text-center p-4 bg-uklc-blue rounded-lg">
-              <div className="flex items-center justify-center gap-1 text-2xl font-bold text-uklc-navy mb-1">
-                <Trophy className="w-6 h-6 text-amber-600" />
-                {stats.badges.length}
-              </div>
-              <p className="text-xs text-gray-600">Badges Earned</p>
-            </div>
+      <div style={{ position: 'relative', zIndex: 1, padding: '22px 20px 100px', maxWidth: 460, margin: '0 auto' }}>
+        {/* Welcome */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 14, color: dark ? '#5A6B7D' : '#8899AA', fontWeight: 500, marginBottom: 3 }}>{greeting}</div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: dark ? b.greyBlue : b.blue, margin: 0, fontFamily: fonts.heading }}>{name}</h1>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8,
+            padding: '5px 12px', borderRadius: 20,
+            background: dark ? 'rgba(230,238,243,0.08)' : b.greyBlue,
+            fontSize: 11, fontWeight: 600, color: dark ? b.greyBlue : b.blue,
+          }}>
+            <UKLCIcon type="book" size={14} /> Level B1-B2 · Ages 13–16
           </div>
         </div>
 
-        {/* Your Topics */}
-        <div>
-          <h2 className="text-xl font-bold text-uklc-navy mb-4">Your Topics:</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {topics.map(topic => (
-              <div
-                key={topic.id}
-                onClick={() => navigate(`/topic/${topic.id}`)}
-                className="bg-white rounded-xl shadow-md p-6 cursor-pointer hover:shadow-lg transition"
-              >
-                <div className="text-5xl mb-3">{getTopicIcon(topic.slug)}</div>
-                <h3 className="text-xl font-bold text-uklc-navy mb-2">{topic.title}</h3>
-                <p className="text-sm text-gray-600 mb-4">{topic.description}</p>
-                
-                <button className="w-full bg-uklc-red text-white py-2 rounded-lg font-medium hover:bg-opacity-90 transition flex items-center justify-center gap-2">
-                  Start Topic
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+        {/* Stats */}
+        <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+          <StatCard iconType="flame" value="3" label="Streak" accentBg={`${b.yellow}44`} dark={dark} />
+          <StatCard iconType="star" value="450" label="XP" accentBg={`${b.pink}88`} dark={dark} />
+          <StatCard iconType="trophy" value="2" label="Badges" accentBg={b.greyBlue} dark={dark} />
+        </div>
+
+        {/* Daily goal */}
+        <div style={{
+          padding: '14px 18px', borderRadius: 16, marginBottom: 28,
+          background: dark ? 'rgba(255,255,255,0.03)' : `${b.white}CC`,
+          border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : b.greyBlue}`,
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: dark ? b.greyBlue : b.blue, fontFamily: fonts.heading }}>Daily Goal</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: b.red, fontFamily: fonts.body }}>2 / 3</span>
+          </div>
+          <div style={{ height: 7, borderRadius: 4, background: dark ? 'rgba(255,255,255,0.06)' : b.greyBlue }}>
+            <div style={{ width: '66%', height: '100%', borderRadius: 4, background: `linear-gradient(90deg, ${b.red}, ${b.pink})`, transition: 'width 0.8s ease' }} />
           </div>
         </div>
-      </main>
-    </div>
-  )
+
+        {/* Topics */}
+        <h2 style={{ fontSize: 17, fontWeight: 800, color: dark ? b.greyBlue : b.blue, marginBottom: 14, fontFamily: fonts.heading }}>Your Topics</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {topics.map((t) => (
+            <TopicCard key={t.id} {...t} dark={dark} onClick={() => navigate(`/topic/${t.id}`)} />
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom nav */}
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 10,
+        background: dark ? `${b.blueDk}EE` : `${b.white}EE`,
+        backdropFilter: 'blur(12px)',
+        borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : b.greyBlue}`,
+        display: 'flex', justifyContent: 'center', padding: '10px 0 14px',
+      }}>
+        {navItems.map((item, i) => (
+          <div key={i} style={{
+            flex: 1, maxWidth: 80, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: 3, cursor: 'pointer', opacity: item.active ? 1 : 0.35,
+          }}>
+            <UKLCIcon type={item.icon} size={22} color={item.active ? b.red : (dark ? b.greyBlue : b.blue)} />
+            <span style={{
+              fontSize: 9, fontWeight: 700, fontFamily: fonts.body,
+              color: item.active ? b.red : (dark ? '#7B8FA3' : '#5A6B7D'),
+              textTransform: 'uppercase', letterSpacing: '0.3px',
+            }}>{item.label}</span>
+          </div>
+        ))}
+      </div>
+    </PageShell>
+  );
 }

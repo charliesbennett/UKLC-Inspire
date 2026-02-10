@@ -1,241 +1,166 @@
-import React, { useState } from 'react'
-import { supabase } from '../supabaseClient'
-import { GraduationCap, Mail, Lock, User, Key } from 'lucide-react'
+import React, { useState } from 'react';
+import { supabase } from '../supabaseClient';
+import { colors as b, fonts } from '../styles/theme';
+import { PageShell, Btn } from '../components/ui/SharedUI';
+import BrandPatterns from '../components/ui/BrandPatterns';
+import UKLCLogo from '../components/ui/UKLCLogo';
 
-export default function LoginPage() {
-  const [isLogin, setIsLogin] = useState(true)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    name: '',
-    courseCode: '',
-    ageGroup: '13-16',
-    level: 2
-  })
+export default function LoginPage({ dark, toggleTheme }) {
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [courseCode, setCourseCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const handleLogin = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError('');
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      })
-
-      if (error) throw error
-      // Successful login - App.jsx will handle redirect
-    } catch (error) {
-      setError(error.message)
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name: name, course_code: courseCode } },
+        });
+        if (error) throw error;
+      }
+    } catch (err) {
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handleRegister = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
-    try {
-      // First, sign up the user with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-      })
-
-      if (authError) throw authError
-
-      // Then create their student record
-      const { error: studentError } = await supabase
-        .from('students')
-        .insert([{
-          id: authData.user.id,
-          email: formData.email,
-          name: formData.name,
-          age_group: formData.ageGroup,
-          level: formData.level,
-          course_code: formData.courseCode,
-        }])
-
-      if (studentError) throw studentError
-
-      // Initialize their stats
-      const { error: statsError } = await supabase
-        .from('student_stats')
-        .insert([{
-          student_id: authData.user.id,
-        }])
-
-      if (statsError) throw statsError
-
-      // Success! User will be logged in automatically
-    } catch (error) {
-      setError(error.message)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const inp = (value, onChange, placeholder, type = 'text') => ({
+    value, onChange: (e) => onChange(e.target.value), placeholder, type,
+    style: {
+      width: '100%', padding: '14px 16px', borderRadius: 12,
+      border: `2px solid ${dark ? 'rgba(255,255,255,0.1)' : b.greyBlue}`,
+      background: dark ? 'rgba(255,255,255,0.04)' : b.white,
+      color: dark ? b.greyBlue : b.blue, fontSize: 14,
+      fontFamily: fonts.body, outline: 'none', transition: 'border-color 0.2s',
+      boxSizing: 'border-box',
+    },
+    onFocus: (e) => { e.target.style.borderColor = b.pink; },
+    onBlur: (e) => { e.target.style.borderColor = dark ? 'rgba(255,255,255,0.1)' : b.greyBlue; },
+  });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-uklc-blue to-white flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-uklc-red rounded-full mb-4">
-            <GraduationCap className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-3xl font-bold text-uklc-navy mb-2">UKLC Inspire</h1>
-          <p className="text-gray-600">Continue Your English Journey</p>
-        </div>
+    <PageShell dark={dark}>
+      <button onClick={toggleTheme} style={{
+        position: 'absolute', top: 16, right: 16, zIndex: 10,
+        width: 38, height: 38, borderRadius: 10,
+        background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(28,48,72,0.06)',
+        border: 'none', cursor: 'pointer', fontSize: 15,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: dark ? b.greyBlue : b.blue,
+      }}>{dark ? '☀' : '☾'}</button>
 
-        {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          {/* Toggle Login/Register */}
-          <div className="flex gap-2 mb-6">
-            <button
-              onClick={() => setIsLogin(true)}
-              className={`flex-1 py-2 rounded-lg font-medium transition ${
-                isLogin
-                  ? 'bg-uklc-red text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Login
-            </button>
-            <button
-              onClick={() => setIsLogin(false)}
-              className={`flex-1 py-2 rounded-lg font-medium transition ${
-                !isLogin
-                  ? 'bg-uklc-red text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Register
-            </button>
+      <div style={{
+        minHeight: '100vh', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', padding: '24px 16px',
+      }}>
+        <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 380 }}>
+          <div style={{ marginBottom: 10, animation: 'fadeDown 0.5s ease-out' }}>
+            <UKLCLogo dark={dark} size="large" />
           </div>
+          <p style={{
+            textAlign: 'center', fontSize: 15, color: dark ? '#7B8FA3' : '#5A6B7D',
+            marginBottom: 28, fontWeight: 500, fontFamily: fonts.body,
+            animation: 'fadeDown 0.5s ease-out 0.1s both',
+          }}>Continue your English journey</p>
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-              {error}
+          {/* Card */}
+          <div style={{
+            background: dark ? 'rgba(255,255,255,0.03)' : `${b.white}EE`,
+            backdropFilter: 'blur(16px)', borderRadius: 22, padding: '26px 22px',
+            border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : b.greyBlue}`,
+            boxShadow: dark ? '0 16px 48px rgba(0,0,0,0.4)' : '0 16px 48px rgba(28,48,72,0.06)',
+            animation: 'fadeUp 0.5s ease-out 0.15s both',
+          }}>
+            {/* Toggle */}
+            <div style={{
+              display: 'flex', gap: 3, padding: 3, borderRadius: 12, marginBottom: 22,
+              background: dark ? 'rgba(255,255,255,0.05)' : b.greyBlue,
+            }}>
+              {['Sign In', 'Register'].map((label, i) => {
+                const active = i === 0 ? isLogin : !isLogin;
+                return (
+                  <button key={label} onClick={() => setIsLogin(i === 0)} style={{
+                    flex: 1, padding: '10px 0', borderRadius: 10, border: 'none',
+                    background: active ? (dark ? b.blueLt : b.white) : 'transparent',
+                    color: active ? (dark ? b.greyBlue : b.blue) : (dark ? '#5A6B7D' : '#8899AA'),
+                    fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                    fontFamily: fonts.heading,
+                    boxShadow: active ? '0 2px 6px rgba(0,0,0,0.08)' : 'none',
+                    transition: 'all 0.2s',
+                  }}>{label}</button>
+                );
+              })}
             </div>
-          )}
 
-          <form onSubmit={isLogin ? handleLogin : handleRegister} className="space-y-4">
-            {!isLogin && (
-              <>
-                {/* Course Code */}
-                <div>
-                  <label className="block text-sm font-medium text-uklc-navy mb-1">
-                    Course Code *
-                  </label>
-                  <div className="relative">
-                    <Key className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      required
-                      value={formData.courseCode}
-                      onChange={(e) => setFormData({ ...formData, courseCode: e.target.value })}
-                      placeholder="e.g., UKLC2024SUMMER"
-                      className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:border-uklc-red focus:outline-none"
-                    />
-                  </div>
-                  <p className="mt-1 text-xs text-gray-500">
-                    Enter the code you received at the end of your UKLC course
-                  </p>
-                </div>
-
-                {/* Full Name */}
-                <div>
-                  <label className="block text-sm font-medium text-uklc-navy mb-1">
-                    Full Name *
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      required
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Your full name"
-                      className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:border-uklc-red focus:outline-none"
-                    />
-                  </div>
-                </div>
-              </>
+            {error && (
+              <div style={{
+                padding: '10px 14px', borderRadius: 10, marginBottom: 12,
+                background: `${b.red}11`, border: `1px solid ${b.red}33`,
+                fontSize: 13, color: b.red, fontFamily: fonts.body,
+              }}>{error}</div>
             )}
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-uklc-navy mb-1">
-                Email *
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="your.email@example.com"
-                  className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:border-uklc-red focus:outline-none"
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium text-uklc-navy mb-1">
-                Password *
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                <input
-                  type="password"
-                  required
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  placeholder="••••••••"
-                  minLength="6"
-                  className="w-full pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:border-uklc-red focus:outline-none"
-                />
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {!isLogin && (
-                <p className="mt-1 text-xs text-gray-500">At least 6 characters</p>
+                <>
+                  <input {...inp(name, setName, 'Full name')} />
+                  <input {...inp(courseCode, setCourseCode, 'Course code (e.g. UKLC2026SUMMER)')} />
+                </>
               )}
+              <input {...inp(email, setEmail, 'Email address', 'email')} />
+              <input {...inp(password, setPassword, 'Password', 'password')} />
+
+              <Btn onClick={handleSubmit} disabled={loading} style={{ width: '100%', marginTop: 4 }}>
+                {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Create Account'}
+              </Btn>
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-uklc-red text-white py-3 rounded-lg font-medium hover:bg-opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Please wait...' : isLogin ? 'Login' : 'Create Account'}
-            </button>
-          </form>
+            {isLogin && (
+              <div style={{ textAlign: 'center', marginTop: 14 }}>
+                <a href="#" style={{ fontSize: 12, color: dark ? '#5A6B7D' : '#8899AA', textDecoration: 'none', fontFamily: fonts.body }}>
+                  Forgot password?
+                </a>
+              </div>
+            )}
 
-          {!isLogin && (
-            <div className="mt-6 p-4 bg-uklc-blue rounded-lg">
-              <p className="text-sm text-uklc-navy">
-                <strong>🎉 Free Trial:</strong> Get 30 days of unlimited access when you sign up!
-              </p>
-            </div>
-          )}
+            {!isLogin && (
+              <div style={{
+                marginTop: 14, padding: '12px 14px', borderRadius: 12,
+                background: dark ? `${b.yellow}11` : `${b.yellow}33`,
+                border: `1px solid ${dark ? `${b.yellow}22` : `${b.yellow}66`}`,
+              }}>
+                <div style={{ fontSize: 12, color: dark ? b.yellow : b.blue, fontWeight: 600, fontFamily: fonts.body }}>
+                  Free with your UKLC course code
+                </div>
+              </div>
+            )}
+          </div>
+
+          <p style={{
+            textAlign: 'center', fontSize: 12, color: dark ? '#4A5A6B' : '#8899AA',
+            marginTop: 22, fontFamily: fonts.body,
+          }}>
+            Need help? <a href="mailto:charlie@uklc.com" style={{ color: b.red, textDecoration: 'none', fontWeight: 600 }}>charlie@uklc.com</a>
+          </p>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-sm text-gray-600 mt-6">
-          Need help? Email{' '}
-          <a href="mailto:charlie@uklc.com" className="text-uklc-red hover:underline">
-            charlie@uklc.com
-          </a>
-        </p>
       </div>
-    </div>
-  )
+
+      <style>{`
+        @keyframes fadeDown { from { opacity:0; transform:translateY(-14px) } to { opacity:1; transform:translateY(0) } }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(14px) } to { opacity:1; transform:translateY(0) } }
+      `}</style>
+    </PageShell>
+  );
 }
