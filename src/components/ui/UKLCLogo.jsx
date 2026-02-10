@@ -1,5 +1,5 @@
 import React from 'react';
-import { colors as b, fonts } from '../styles/theme';
+import { colors as b, fonts } from '../../styles/theme';
 
 /**
  * UKLC Logo rendered as styled text.
