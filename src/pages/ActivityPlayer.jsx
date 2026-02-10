@@ -7,7 +7,7 @@ import QuizPlayer from '../components/QuizPlayer'
 import VocabularyActivity from '../components/activities/VocabularyActivity'
 import ReadingActivity from '../components/activities/ReadingActivity'
 import GrammarActivity from '../components/activities/GrammarActivity'
-import RestaurantDesignActivity from '../components/activities/RestaurantDesignActivity'
+import CreativeProjectActivity from '../components/activities/CreativeProjectActivity'
 import { PageShell, Header } from '../components/ui/SharedUI'
 import { colors as b } from '../styles/theme'
 
@@ -17,7 +17,6 @@ export default function ActivityPlayer({ user, dark, toggleTheme }) {
   const [activity, setActivity] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Progress tracking
   const {
     saving,
     error: progressError,
@@ -25,17 +24,13 @@ export default function ActivityPlayer({ user, dark, toggleTheme }) {
     resetAttempts,
     updateProgress,
     completeActivity,
-    getProgress,
   } = useProgressTracker(user?.id)
 
   const [completionData, setCompletionData] = useState(null)
   const [showCompletion, setShowCompletion] = useState(false)
 
-  useEffect(() => {
-    loadActivity()
-  }, [activityId])
+  useEffect(() => { loadActivity() }, [activityId])
 
-  // Start tracking when activity loads
   useEffect(() => {
     if (activity && user?.id) {
       resetAttempts()
@@ -50,7 +45,6 @@ export default function ActivityPlayer({ user, dark, toggleTheme }) {
         .select('*')
         .eq('id', activityId)
         .single()
-
       if (error) throw error
       setActivity(data)
     } catch (error) {
@@ -60,7 +54,6 @@ export default function ActivityPlayer({ user, dark, toggleTheme }) {
     }
   }
 
-  // ── Completion handler ──
   const handleActivityComplete = async (score) => {
     if (!activity) return
     const result = await completeActivity(activityId, activity.activity_type, score)
@@ -89,6 +82,15 @@ export default function ActivityPlayer({ user, dark, toggleTheme }) {
     navigate(-1)
   }
 
+  // Parse content — stored as JSON in Supabase, might be string or object
+  const getContent = () => {
+    if (!activity?.content) return {}
+    if (typeof activity.content === 'string') {
+      try { return JSON.parse(activity.content) } catch { return {} }
+    }
+    return activity.content
+  }
+
   if (loading) {
     return (
       <PageShell dark={dark}>
@@ -96,8 +98,7 @@ export default function ActivityPlayer({ user, dark, toggleTheme }) {
           <div style={{
             width: 40, height: 40, borderRadius: '50%',
             border: `3px solid ${dark ? 'rgba(255,255,255,0.1)' : b.greyBlue}`,
-            borderTopColor: b.red,
-            animation: 'spin 0.8s linear infinite',
+            borderTopColor: b.red, animation: 'spin 0.8s linear infinite',
           }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         </div>
@@ -119,22 +120,20 @@ export default function ActivityPlayer({ user, dark, toggleTheme }) {
     )
   }
 
-  // Dark mode override styles for Tailwind-based activity components
+  const content = getContent()
+
+  // Dark mode overrides for Tailwind-based activity components
   const darkOverrides = dark ? `
     .activity-wrapper { color-scheme: dark; }
     .activity-wrapper, .activity-wrapper > div { background: transparent !important; }
     .activity-wrapper .max-w-4xl, .activity-wrapper .max-w-2xl { background: transparent !important; }
-
-    /* Cards */
-    .activity-wrapper [class*="rounded-xl"], 
+    .activity-wrapper [class*="rounded-xl"],
     .activity-wrapper [class*="rounded-lg"],
     .activity-wrapper .border {
       background: rgba(255,255,255,0.04) !important;
       border-color: rgba(255,255,255,0.08) !important;
       color: ${b.greyBlue} !important;
     }
-
-    /* Text */
     .activity-wrapper p, .activity-wrapper span, .activity-wrapper label,
     .activity-wrapper h2, .activity-wrapper h3, .activity-wrapper h4 {
       color: ${b.greyBlue} !important;
@@ -147,8 +146,6 @@ export default function ActivityPlayer({ user, dark, toggleTheme }) {
     .activity-wrapper .font-bold, .activity-wrapper .font-semibold {
       color: ${b.greyBlue} !important;
     }
-
-    /* Inputs */
     .activity-wrapper input, .activity-wrapper textarea {
       background: rgba(255,255,255,0.04) !important;
       border-color: rgba(255,255,255,0.1) !important;
@@ -157,8 +154,6 @@ export default function ActivityPlayer({ user, dark, toggleTheme }) {
     .activity-wrapper input::placeholder, .activity-wrapper textarea::placeholder {
       color: #5A6B7D !important;
     }
-
-    /* Buttons - primary */
     .activity-wrapper button[class*="bg-"] {
       background: ${b.red} !important;
       color: white !important;
@@ -169,19 +164,12 @@ export default function ActivityPlayer({ user, dark, toggleTheme }) {
       border-color: rgba(255,255,255,0.12) !important;
       color: ${b.greyBlue} !important;
     }
-
-    /* Progress bar */
-    .activity-wrapper [class*="bg-gray-50"], .activity-wrapper [class*="bg-gray-100"] {
+    .activity-wrapper [class*="bg-gray-50"], .activity-wrapper [class*="bg-gray-100"],
+    .activity-wrapper [class*="bg-gray-200"] {
       background: rgba(255,255,255,0.06) !important;
     }
-    .activity-wrapper [class*="bg-blue-50"] {
-      background: rgba(240,242,121,0.08) !important;
-    }
-    .activity-wrapper [class*="bg-yellow-50"] {
-      background: rgba(240,242,121,0.08) !important;
-    }
-
-    /* Correct/incorrect feedback */
+    .activity-wrapper [class*="bg-blue-50"] { background: rgba(240,242,121,0.08) !important; }
+    .activity-wrapper [class*="bg-yellow-50"] { background: rgba(240,242,121,0.08) !important; }
     .activity-wrapper [class*="bg-green-50"], .activity-wrapper .border-green-500 {
       background: rgba(34,197,94,0.08) !important;
       border-color: rgba(34,197,94,0.3) !important;
@@ -192,91 +180,82 @@ export default function ActivityPlayer({ user, dark, toggleTheme }) {
     }
     .activity-wrapper .text-green-600 { color: #4ADE80 !important; }
     .activity-wrapper .text-red-600 { color: ${b.red} !important; }
-
-    /* Radio buttons & hover states */
-    .activity-wrapper .hover\\:bg-gray-50:hover {
-      background: rgba(255,255,255,0.06) !important;
-    }
-
-    /* Flashcard specific */
+    .activity-wrapper .hover\\:bg-gray-50:hover { background: rgba(255,255,255,0.06) !important; }
     .activity-wrapper .text-4xl { color: ${b.greyBlue} !important; }
-    .activity-wrapper .cursor-pointer.min-h-\\[300px\\] {
-      background: rgba(255,255,255,0.04) !important;
-    }
-
-    /* Step indicators */
-    .activity-wrapper .bg-gray-200 {
-      background: rgba(255,255,255,0.08) !important;
-    }
-    .activity-wrapper .text-gray-600.text-sm { color: #5A6B7D !important; }
+    .activity-wrapper .cursor-pointer.min-h-\\[300px\\] { background: rgba(255,255,255,0.04) !important; }
   ` : '';
+
+  // Map activity_type to component
+  const renderActivity = () => {
+    switch (activity.activity_type) {
+      case 'quiz':
+        return <QuizPlayer activity={activity} onComplete={handleQuizComplete} />;
+
+      case 'vocabulary':
+        return (
+          <VocabularyActivity
+            content={content}
+            onComplete={handleActivityComplete}
+            onProgress={handlePartialProgress}
+          />
+        );
+
+      case 'reading':
+        return (
+          <ReadingActivity
+            content={content}
+            onComplete={handleActivityComplete}
+            onProgress={handlePartialProgress}
+          />
+        );
+
+      case 'grammar':
+        return (
+          <GrammarActivity
+            content={content}
+            onComplete={handleActivityComplete}
+            onProgress={handlePartialProgress}
+          />
+        );
+
+      case 'project':
+        return (
+          <CreativeProjectActivity
+            content={content}
+            onComplete={handleActivityComplete}
+            onProgress={handlePartialProgress}
+          />
+        );
+
+      default:
+        return (
+          <div style={{
+            maxWidth: 600, margin: '40px auto', textAlign: 'center', padding: 32,
+            borderRadius: 18,
+            background: dark ? 'rgba(255,255,255,0.04)' : 'white',
+            border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : b.greyBlue}`,
+          }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🚧</div>
+            <h2 style={{ fontSize: 22, fontWeight: 700, color: dark ? b.greyBlue : b.blue, marginBottom: 8 }}>Coming Soon!</h2>
+            <p style={{ color: dark ? '#7B8FA3' : '#5A6B7D', marginBottom: 20 }}>
+              This activity type ({activity.activity_type}) will be available soon.
+            </p>
+          </div>
+        );
+    }
+  };
 
   return (
     <PageShell dark={dark}>
-      <Header
-        dark={dark}
-        title={activity.title}
-        onBack={() => navigate(-1)}
-        toggleTheme={toggleTheme}
-      />
-
+      <Header dark={dark} title={activity.title} onBack={() => navigate(-1)} toggleTheme={toggleTheme} />
       <style>{darkOverrides}</style>
 
       <div className="activity-wrapper" style={{ padding: '0 0 40px' }}>
         <main style={{ maxWidth: 900, margin: '0 auto' }}>
-          {activity.activity_type === 'quiz' && (
-            <QuizPlayer activity={activity} onComplete={handleQuizComplete} />
-          )}
-
-          {activity.activity_type === 'vocabulary' && (
-            <VocabularyActivity
-              onComplete={handleActivityComplete}
-              onProgress={handlePartialProgress}
-            />
-          )}
-
-          {activity.activity_type === 'reading' && (
-            <ReadingActivity
-              onComplete={handleActivityComplete}
-              onProgress={handlePartialProgress}
-            />
-          )}
-
-          {activity.activity_type === 'grammar' && activity.id === 6 && (
-            <GrammarActivity
-              onComplete={handleActivityComplete}
-              onProgress={handlePartialProgress}
-            />
-          )}
-
-          {activity.activity_type === 'grammar' && activity.id === 10 && (
-            <RestaurantDesignActivity
-              onComplete={handleActivityComplete}
-              onProgress={handlePartialProgress}
-            />
-          )}
-
-          {activity.activity_type !== 'quiz' &&
-           activity.activity_type !== 'vocabulary' &&
-           activity.activity_type !== 'reading' &&
-           activity.activity_type !== 'grammar' && (
-            <div style={{
-              maxWidth: 600, margin: '40px auto', textAlign: 'center', padding: 32,
-              borderRadius: 18,
-              background: dark ? 'rgba(255,255,255,0.04)' : 'white',
-              border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : b.greyBlue}`,
-            }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>🚧</div>
-              <h2 style={{ fontSize: 22, fontWeight: 700, color: dark ? b.greyBlue : b.blue, marginBottom: 8 }}>Coming Soon!</h2>
-              <p style={{ color: dark ? '#7B8FA3' : '#5A6B7D', marginBottom: 20 }}>
-                This activity type ({activity.activity_type}) will be available soon.
-              </p>
-            </div>
-          )}
+          {renderActivity()}
         </main>
       </div>
 
-      {/* Saving indicator */}
       {saving && (
         <div style={{
           position: 'fixed', top: 16, right: 16, zIndex: 50,
@@ -286,7 +265,6 @@ export default function ActivityPlayer({ user, dark, toggleTheme }) {
         }}>Saving progress...</div>
       )}
 
-      {/* Error indicator */}
       {progressError && (
         <div style={{
           position: 'fixed', bottom: 16, right: 16, zIndex: 50,
@@ -296,7 +274,6 @@ export default function ActivityPlayer({ user, dark, toggleTheme }) {
         }}>Save error: {progressError}</div>
       )}
 
-      {/* Completion modal */}
       {showCompletion && completionData && (
         <CompletionModal
           score={completionData.progress.score}
