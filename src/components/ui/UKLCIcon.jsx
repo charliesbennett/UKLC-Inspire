@@ -1,5 +1,5 @@
 import React from 'react';
-import { colors as b } from '../styles/theme';
+import { colors as b } from '../../styles/theme';
 
 /**
  * Custom SVG icons following UKLC's geometric brand style.
