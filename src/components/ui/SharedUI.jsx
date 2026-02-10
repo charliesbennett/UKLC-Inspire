@@ -1,5 +1,5 @@
 import React from 'react';
-import { colors as b } from '../../styles/theme';
+import { colors as b, fonts, fontImportUrl } from '../../styles/theme';
 import BrandPatterns from './BrandPatterns';
 import UKLCLogo from './UKLCLogo';
 import UKLCIcon from './UKLCIcon';
