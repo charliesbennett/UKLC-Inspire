@@ -36,8 +36,8 @@ function App() {
           <TopicView dark={dark} toggleTheme={toggle} />
         } />
         <Route path="/activity/:activityId" element={
-          <ActivityPlayer user={user} />
-        } />
+  <ActivityPlayer user={user} dark={dark} toggleTheme={toggle} />
+} />
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
     </BrowserRouter>
