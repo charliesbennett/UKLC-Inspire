@@ -1,5 +1,5 @@
 import React from 'react';
-import { colors as b } from '../styles/theme';
+import { colors as b } from '../../styles/theme';
 
 /**
  * Decorative background patterns from UKLC Brand Guidelines:
