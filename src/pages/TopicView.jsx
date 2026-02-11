@@ -4,15 +4,133 @@ import { supabase } from '../supabaseClient';
 import { colors as b, fonts } from '../styles/theme';
 import { PageShell } from '../components/ui/SharedUI';
 import UKLCLogo from '../components/ui/UKLCLogo';
+import UKLCIcon from '../components/ui/UKLCIcon';
 
-export default function TopicPage({ dark }) {
+const levelToCEFR = (level) => {
+  // Adjust this mapping to match your DB meaning
+  // Your DB currently has level as an integer
+  const map = {
+    1: 'A1',
+    2: 'A2',
+    3: 'B1',
+    4: 'B2',
+    5: 'C1',
+    6: 'C2',
+  };
+  return map[level] || String(level ?? '');
+};
+
+const activityTypeLabel = (type) => {
+  const map = {
+    vocabulary: 'Vocabulary',
+    reading: 'Reading',
+    grammar: 'Grammar',
+    project: 'Project',
+    quiz: 'Quiz',
+  };
+  return map[type] || type || 'Activity';
+};
+
+// Use icon names you already have in UKLCIcon.
+// If some don’t exist, it will still render (or you can swap them).
+const activityTypeIcon = (type) => {
+  const map = {
+    vocabulary: 'book',
+    reading: 'book',
+    grammar: 'badge',
+    project: 'trophy',
+    quiz: 'star',
+  };
+  return map[type] || 'book';
+};
+
+const ActivityCard = ({ a, dark, onClick }) => {
+  const [h, setH] = useState(false);
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+      style={{
+        padding: '16px 18px',
+        borderRadius: 18,
+        cursor: 'pointer',
+        background: dark
+          ? h
+            ? 'rgba(255,255,255,0.07)'
+            : 'rgba(255,255,255,0.03)'
+          : h
+          ? b.white
+          : `${b.white}CC`,
+        border: `1px solid ${dark ? 'rgba(255,255,255,0.08)' : b.greyBlue}`,
+        transition: 'all 0.2s',
+        transform: h ? 'translateY(-2px)' : 'none',
+        boxShadow: h ? (dark ? '0 10px 26px rgba(0,0,0,0.35)' : '0 10px 26px rgba(28,48,72,0.10)') : 'none',
+        display: 'flex',
+        gap: 14,
+        alignItems: 'center',
+      }}
+    >
+      <div
+        style={{
+          width: 46,
+          height: 46,
+          borderRadius: 14,
+          flexShrink: 0,
+          background: dark ? 'rgba(255,255,255,0.06)' : `${b.pink}55`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <UKLCIcon type={activityTypeIcon(a.activity_type)} size={22} color={dark ? '#7B8FA3' : b.blue} />
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            fontFamily: fonts.heading,
+            fontWeight: 900,
+            color: dark ? b.greyBlue : b.blue,
+            fontSize: 16,
+            marginBottom: 4,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          {a.order_number}. {a.title}
+        </div>
+
+        <div
+          style={{
+            fontFamily: fonts.body,
+            color: dark ? '#7B8FA3' : '#5A6B7D',
+            fontSize: 12,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <span style={{ fontWeight: 800 }}>{activityTypeLabel(a.activity_type)}</span>
+          <span style={{ opacity: 0.7 }}>•</span>
+          <span style={{ opacity: 0.9 }}>Tap to open</span>
+        </div>
+      </div>
+
+      <div style={{ opacity: 0.6 }}>
+        <UKLCIcon type="chart" size={18} color={dark ? '#7B8FA3' : b.blue} />
+      </div>
+    </div>
+  );
+};
+
+export default function TopicView({ dark }) {
   const navigate = useNavigate();
-
-  // Supports BOTH:
-  // - /topic/2 (numeric id)
-  // - /topic/music-culture (slug)
-  // If your route param name is not "id", add it here (e.g. topicId)
   const params = useParams();
+
+  // supports /topic/:id OR /topic/:slug (depending on how your routes are set)
   const topicParam = params.id || params.topicId || params.slug;
 
   const isNumeric = useMemo(() => /^\d+$/.test(String(topicParam || '')), [topicParam]);
@@ -23,51 +141,48 @@ export default function TopicPage({ dark }) {
   const [err, setErr] = useState(null);
 
   useEffect(() => {
-    const fetchTopicAndActivities = async () => {
+    const run = async () => {
       try {
         setLoading(true);
         setErr(null);
 
         if (!topicParam) throw new Error('Missing topic in URL');
 
-        console.log('[TopicPage] topicParam:', topicParam, 'isNumeric:', isNumeric);
+        console.log('[TopicView] Fetching topic with param:', topicParam);
 
-        // 1) Fetch topic (by id if numeric, else by slug)
-        const topicQuery = supabase
+        const base = supabase
           .from('topics')
-          .select('id, title, description, slug, level, age_group, is_published')
+          .select('id, title, description, slug, level, age_group, order_number, is_published')
           .limit(1);
 
-        const { data: topicData, error: topicError } = isNumeric
-          ? await topicQuery.eq('id', Number(topicParam)).maybeSingle()
-          : await topicQuery.eq('slug', String(topicParam)).maybeSingle();
+        const { data: t, error: tErr } = isNumeric
+          ? await base.eq('id', Number(topicParam)).maybeSingle()
+          : await base.eq('slug', String(topicParam)).maybeSingle();
 
-        console.log('[TopicPage] Topic response:', { topicData, topicError });
+        console.log('[TopicView] Topic result:', { t, tErr });
 
-        if (topicError) throw topicError;
-        if (!topicData) throw new Error('Topic not found in database');
+        if (tErr) throw tErr;
+        if (!t) throw new Error('Topic not found');
 
-        // Optional: only show published topics
-        if (topicData.is_published === false) {
-          throw new Error('Topic exists but is not published');
-        }
+        if (t.is_published === false) throw new Error('Topic exists but is not published');
 
-        setTopic(topicData);
+        setTopic(t);
 
-        // 2) Fetch activities using the real topic id from DB (important!)
-        const { data: acts, error: actsError } = await supabase
+        console.log('[TopicView] Fetching activities for topic_id:', t.id);
+
+        const { data: acts, error: aErr } = await supabase
           .from('activities')
-          .select('id, topic_id, title, activity_type, order_number, content')
-          .eq('topic_id', topicData.id)
+          .select('id, topic_id, title, activity_type, order_number')
+          .eq('topic_id', t.id)
           .order('order_number', { ascending: true });
 
-        console.log('[TopicPage] Activities response:', { acts, actsError });
+        console.log('[TopicView] Activities result:', { acts, aErr });
 
-        if (actsError) throw actsError;
+        if (aErr) throw aErr;
 
         setActivities(acts || []);
       } catch (e) {
-        console.error('[TopicPage] Error:', e);
+        console.error('[TopicView] Error:', e);
         setErr(e?.message || 'Failed to load topic');
         setTopic(null);
         setActivities([]);
@@ -76,7 +191,7 @@ export default function TopicPage({ dark }) {
       }
     };
 
-    fetchTopicAndActivities();
+    run();
   }, [topicParam, isNumeric]);
 
   return (
@@ -99,7 +214,7 @@ export default function TopicPage({ dark }) {
             cursor: 'pointer',
             padding: '8px 12px',
             borderRadius: 12,
-            fontWeight: 700,
+            fontWeight: 800,
             fontFamily: fonts.body,
             background: dark ? 'rgba(255,255,255,0.06)' : b.greyBlue,
             color: dark ? b.greyBlue : b.blue,
@@ -109,33 +224,34 @@ export default function TopicPage({ dark }) {
         </button>
       </div>
 
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '22px 20px 80px' }}>
+      <div style={{ maxWidth: 760, margin: '0 auto', padding: '26px 20px 90px' }}>
         {loading ? (
           <div style={{ color: dark ? '#7B8FA3' : '#5A6B7D', fontFamily: fonts.body }}>
             Loading topic...
           </div>
         ) : err ? (
           <div>
-            <div style={{ color: b.red, fontFamily: fonts.body, fontWeight: 700, marginBottom: 8 }}>
+            <div style={{ color: b.red, fontFamily: fonts.body, fontWeight: 900, marginBottom: 8 }}>
               {err}
             </div>
             <div
               onClick={() => navigate('/dashboard')}
-              style={{ color: b.red, cursor: 'pointer', fontFamily: fonts.body, fontWeight: 700 }}
+              style={{ color: b.red, cursor: 'pointer', fontFamily: fonts.body, fontWeight: 900 }}
             >
               Return to Dashboard
             </div>
           </div>
         ) : (
           <>
-            {/* Topic Header */}
+            {/* Topic header */}
             <h1
               style={{
                 margin: 0,
-                fontSize: 28,
-                fontWeight: 900,
+                fontSize: 44,
+                fontWeight: 950,
                 color: dark ? b.greyBlue : b.blue,
                 fontFamily: fonts.heading,
+                letterSpacing: '-0.5px',
               }}
             >
               {topic.title}
@@ -143,64 +259,53 @@ export default function TopicPage({ dark }) {
 
             <div
               style={{
-                marginTop: 8,
+                marginTop: 10,
                 color: dark ? '#7B8FA3' : '#5A6B7D',
                 fontFamily: fonts.body,
-                lineHeight: 1.5,
+                lineHeight: 1.55,
+                fontSize: 18,
+                maxWidth: 640,
               }}
             >
               {topic.description}
             </div>
 
-            {/* Meta */}
-            <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+            {/* Chips (NO SLUG CHIP) */}
+            <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
               <span
                 style={{
-                  padding: '6px 10px',
+                  padding: '8px 14px',
                   borderRadius: 999,
                   background: dark ? 'rgba(255,255,255,0.06)' : b.greyBlue,
-                  fontSize: 12,
-                  fontWeight: 700,
+                  fontSize: 14,
+                  fontWeight: 900,
                   fontFamily: fonts.body,
                   color: dark ? b.greyBlue : b.blue,
                 }}
               >
-                Level: {topic.level}
+                Level: {levelToCEFR(topic.level)}
               </span>
               <span
                 style={{
-                  padding: '6px 10px',
+                  padding: '8px 14px',
                   borderRadius: 999,
                   background: dark ? 'rgba(255,255,255,0.06)' : b.greyBlue,
-                  fontSize: 12,
-                  fontWeight: 700,
+                  fontSize: 14,
+                  fontWeight: 900,
                   fontFamily: fonts.body,
                   color: dark ? b.greyBlue : b.blue,
                 }}
               >
                 Ages: {topic.age_group}
               </span>
-              <span
-                style={{
-                  padding: '6px 10px',
-                  borderRadius: 999,
-                  background: dark ? 'rgba(255,255,255,0.06)' : b.greyBlue,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  fontFamily: fonts.body,
-                  color: dark ? b.greyBlue : b.blue,
-                }}
-              >
-                Slug: {topic.slug}
-              </span>
             </div>
 
             {/* Activities */}
             <h2
               style={{
-                marginTop: 22,
-                fontSize: 16,
-                fontWeight: 900,
+                marginTop: 28,
+                fontSize: 26,
+                fontWeight: 950,
                 color: dark ? b.greyBlue : b.blue,
                 fontFamily: fonts.heading,
               }}
@@ -213,31 +318,21 @@ export default function TopicPage({ dark }) {
                 No activities found for this topic.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 14 }}>
                 {activities.map((a) => (
-                  <div
+                  <ActivityCard
                     key={a.id}
-                    style={{
-                      padding: '14px 16px',
-                      borderRadius: 16,
-                      border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : b.greyBlue}`,
-                      background: dark ? 'rgba(255,255,255,0.03)' : `${b.white}CC`,
+                    a={a}
+                    dark={dark}
+                    onClick={() => {
+                      // If you already have an Activity page route, use it here.
+                      // Common options:
+                      // navigate(`/activity/${a.id}`);
+                      // navigate(`/topic/${topic.id}/activity/${a.id}`);
+                      console.log('[TopicView] Activity clicked:', a.id);
+                      navigate(`/activity/${a.id}`);
                     }}
-                  >
-                    <div
-                      style={{
-                        fontFamily: fonts.heading,
-                        fontWeight: 800,
-                        color: dark ? b.greyBlue : b.blue,
-                        marginBottom: 4,
-                      }}
-                    >
-                      {a.order_number}. {a.title}
-                    </div>
-                    <div style={{ fontFamily: fonts.body, color: dark ? '#7B8FA3' : '#5A6B7D', fontSize: 12 }}>
-                      Type: {a.activity_type}
-                    </div>
-                  </div>
+                  />
                 ))}
               </div>
             )}
