@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { colors as b, fonts } from '../styles/theme';
@@ -7,8 +7,15 @@ import UKLCLogo from '../components/ui/UKLCLogo';
 
 export default function TopicPage({ dark }) {
   const navigate = useNavigate();
-  const { id } = useParams(); // <-- /topic/:id
-  const topicId = Number(id);
+
+  // Supports BOTH:
+  // - /topic/2 (numeric id)
+  // - /topic/music-culture (slug)
+  // If your route param name is not "id", add it here (e.g. topicId)
+  const params = useParams();
+  const topicParam = params.id || params.topicId || params.slug;
+
+  const isNumeric = useMemo(() => /^\d+$/.test(String(topicParam || '')), [topicParam]);
 
   const [topic, setTopic] = useState(null);
   const [activities, setActivities] = useState([]);
@@ -21,36 +28,37 @@ export default function TopicPage({ dark }) {
         setLoading(true);
         setErr(null);
 
-        if (!topicId || Number.isNaN(topicId)) {
-          throw new Error('Invalid topic id in URL');
-        }
+        if (!topicParam) throw new Error('Missing topic in URL');
 
-        console.log('[TopicPage] Fetching topic + activities for id:', topicId);
+        console.log('[TopicPage] topicParam:', topicParam, 'isNumeric:', isNumeric);
 
-        // 1) Fetch topic
-        const { data: topicData, error: topicError } = await supabase
+        // 1) Fetch topic (by id if numeric, else by slug)
+        const topicQuery = supabase
           .from('topics')
           .select('id, title, description, slug, level, age_group, is_published')
-          .eq('id', topicId)
-          .maybeSingle();
+          .limit(1);
+
+        const { data: topicData, error: topicError } = isNumeric
+          ? await topicQuery.eq('id', Number(topicParam)).maybeSingle()
+          : await topicQuery.eq('slug', String(topicParam)).maybeSingle();
 
         console.log('[TopicPage] Topic response:', { topicData, topicError });
 
         if (topicError) throw topicError;
         if (!topicData) throw new Error('Topic not found in database');
 
-        // Optional: if you only want published topics visible in the app
+        // Optional: only show published topics
         if (topicData.is_published === false) {
           throw new Error('Topic exists but is not published');
         }
 
         setTopic(topicData);
 
-        // 2) Fetch activities
+        // 2) Fetch activities using the real topic id from DB (important!)
         const { data: acts, error: actsError } = await supabase
           .from('activities')
           .select('id, topic_id, title, activity_type, order_number, content')
-          .eq('topic_id', topicId)
+          .eq('topic_id', topicData.id)
           .order('order_number', { ascending: true });
 
         console.log('[TopicPage] Activities response:', { acts, actsError });
@@ -69,7 +77,7 @@ export default function TopicPage({ dark }) {
     };
 
     fetchTopicAndActivities();
-  }, [topicId]);
+  }, [topicParam, isNumeric]);
 
   return (
     <PageShell dark={dark}>
@@ -172,6 +180,19 @@ export default function TopicPage({ dark }) {
               >
                 Ages: {topic.age_group}
               </span>
+              <span
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 999,
+                  background: dark ? 'rgba(255,255,255,0.06)' : b.greyBlue,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: fonts.body,
+                  color: dark ? b.greyBlue : b.blue,
+                }}
+              >
+                Slug: {topic.slug}
+              </span>
             </div>
 
             {/* Activities */}
@@ -216,9 +237,6 @@ export default function TopicPage({ dark }) {
                     <div style={{ fontFamily: fonts.body, color: dark ? '#7B8FA3' : '#5A6B7D', fontSize: 12 }}>
                       Type: {a.activity_type}
                     </div>
-
-                    {/* Optional: route to activity page if you have one */}
-                    {/* <button onClick={() => navigate(`/activity/${a.id}`)}>Open</button> */}
                   </div>
                 ))}
               </div>
