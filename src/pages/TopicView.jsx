@@ -35,13 +35,13 @@ const activityTypeLabel = (type) => {
 // If some don’t exist, it will still render (or you can swap them).
 const activityTypeIcon = (type) => {
   const map = {
-    vocabulary: 'cards',    // flashcards vibe
-    reading: 'document',    // text/article vibe
-    grammar: 'edit',        // rules/fixing vibe
-    project: 'rocket',      // building/creating vibe
-    quiz: 'check',          // test vibe
+    vocabulary: 'vocab',
+    reading: 'reading',
+    grammar: 'grammar',
+    project: 'design', // your "project" icon
+    quiz: 'check',     // you DO have "check" in UKLCIcon
   };
-  return map[type] || 'document';
+  return map[type] || 'book';
 };
 
 const ActivityCard = ({ a, dark, onClick }) => {
