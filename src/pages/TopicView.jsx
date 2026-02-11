@@ -1,108 +1,230 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 import { colors as b, fonts } from '../styles/theme';
-import { PageShell, Header } from '../components/ui/SharedUI';
-import UKLCIcon from '../components/ui/UKLCIcon';
+import { PageShell } from '../components/ui/SharedUI';
+import UKLCLogo from '../components/ui/UKLCLogo';
 
-// Topic data — IDs must match your Supabase `activities` table.
-// To add a new topic: copy a block, update the topic ID (from your `topics` table)
-// and activity IDs (from your `activities` table).
-const TOPICS = {
-  '1': {
-    title: 'Food & Restaurants',
-    description: 'Vocabulary, reading & grammar for dining out',
-    iconType: 'food',
-    activities: [
-      { id: 4,  activityType: 'vocabulary',  iconType: 'vocab',   title: 'Build Vocabulary',              type: 'Vocabulary',       minutes: 10, xp: 50  },
-      { id: 5,  activityType: 'reading',     iconType: 'reading', title: 'Crazy Restaurants',             type: 'Reading',          minutes: 15, xp: 60  },
-      { id: 6,  activityType: 'grammar',     iconType: 'grammar', title: 'Grammar Practice',              type: 'Grammar',          minutes: 12, xp: 50  },
-      { id: 10, activityType: 'restaurant',  iconType: 'design',  title: 'Design Your Own Restaurant',    type: 'Creative Project', minutes: 20, xp: 100 },
-    ],
-  },
-};
-
-export default function TopicView({ dark, toggleTheme }) {
-  const { topicId } = useParams();
+export default function TopicPage({ dark }) {
   const navigate = useNavigate();
-  const topic = TOPICS[topicId];
+  const { id } = useParams(); // <-- /topic/:id
+  const topicId = Number(id);
 
-  if (!topic) {
-    return (
-      <PageShell dark={dark}>
-        <Header dark={dark} title="Topic" onBack={() => navigate('/dashboard')} toggleTheme={toggleTheme} />
-        <div style={{ padding: 40, textAlign: 'center', color: dark ? '#7B8FA3' : '#5A6B7D', fontFamily: fonts.body }}>
-          Topic not found. <span onClick={() => navigate('/dashboard')} style={{ color: b.red, cursor: 'pointer' }}>Return to Dashboard</span>
-        </div>
-      </PageShell>
-    );
-  }
+  const [topic, setTopic] = useState(null);
+  const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    const fetchTopicAndActivities = async () => {
+      try {
+        setLoading(true);
+        setErr(null);
+
+        if (!topicId || Number.isNaN(topicId)) {
+          throw new Error('Invalid topic id in URL');
+        }
+
+        console.log('[TopicPage] Fetching topic + activities for id:', topicId);
+
+        // 1) Fetch topic
+        const { data: topicData, error: topicError } = await supabase
+          .from('topics')
+          .select('id, title, description, slug, level, age_group, is_published')
+          .eq('id', topicId)
+          .maybeSingle();
+
+        console.log('[TopicPage] Topic response:', { topicData, topicError });
+
+        if (topicError) throw topicError;
+        if (!topicData) throw new Error('Topic not found in database');
+
+        // Optional: if you only want published topics visible in the app
+        if (topicData.is_published === false) {
+          throw new Error('Topic exists but is not published');
+        }
+
+        setTopic(topicData);
+
+        // 2) Fetch activities
+        const { data: acts, error: actsError } = await supabase
+          .from('activities')
+          .select('id, topic_id, title, activity_type, order_number, content')
+          .eq('topic_id', topicId)
+          .order('order_number', { ascending: true });
+
+        console.log('[TopicPage] Activities response:', { acts, actsError });
+
+        if (actsError) throw actsError;
+
+        setActivities(acts || []);
+      } catch (e) {
+        console.error('[TopicPage] Error:', e);
+        setErr(e?.message || 'Failed to load topic');
+        setTopic(null);
+        setActivities([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTopicAndActivities();
+  }, [topicId]);
 
   return (
     <PageShell dark={dark}>
-      <Header dark={dark} title={topic.title} onBack={() => navigate('/dashboard')} toggleTheme={toggleTheme} />
+      {/* Header */}
+      <div
+        style={{
+          padding: '14px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: `1px solid ${dark ? 'rgba(255,255,255,0.05)' : b.greyBlue}`,
+        }}
+      >
+        <UKLCLogo dark={dark} size="small" />
+        <button
+          onClick={() => navigate('/dashboard')}
+          style={{
+            border: 'none',
+            cursor: 'pointer',
+            padding: '8px 12px',
+            borderRadius: 12,
+            fontWeight: 700,
+            fontFamily: fonts.body,
+            background: dark ? 'rgba(255,255,255,0.06)' : b.greyBlue,
+            color: dark ? b.greyBlue : b.blue,
+          }}
+        >
+          ← Dashboard
+        </button>
+      </div>
 
-      <div style={{ padding: '20px 20px 40px', maxWidth: 460, margin: '0 auto' }}>
-        {/* Hero banner */}
-        <div style={{
-          borderRadius: 20, padding: '28px 22px', marginBottom: 24, position: 'relative', overflow: 'hidden',
-          background: dark ? `linear-gradient(135deg, ${b.blueLt}, ${b.blue})` : `linear-gradient(135deg, ${b.blue}, ${b.blueLt})`,
-        }}>
-          <svg style={{ position: 'absolute', top: 10, right: 10, opacity: 0.15 }} width="60" height="60" viewBox="0 0 60 60">
-            {[0,1,2].map(r => [0,1,2].map(c => <circle key={`${r}${c}`} cx={10+c*20} cy={10+r*20} r="4" fill={b.pink} />))}
-          </svg>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, position: 'relative', zIndex: 1 }}>
-            <div style={{ width: 64, height: 64, borderRadius: 18, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <UKLCIcon type={topic.iconType} size={36} />
-            </div>
-            <div>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: b.white, fontFamily: fonts.heading, marginBottom: 4 }}>{topic.title}</h1>
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>{topic.description}</p>
-            </div>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: '22px 20px 80px' }}>
+        {loading ? (
+          <div style={{ color: dark ? '#7B8FA3' : '#5A6B7D', fontFamily: fonts.body }}>
+            Loading topic...
           </div>
-          <div style={{ display: 'flex', gap: 16, marginTop: 18, position: 'relative', zIndex: 1 }}>
-            {[{ label: `${topic.activities.length} Activities`, icon: 'star' }, { label: `~${topic.activities.reduce((s, a) => s + a.minutes, 0)} min`, icon: 'clock' }].map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <UKLCIcon type={item.icon} size={16} color="rgba(255,255,255,0.6)" />
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{item.label}</span>
-              </div>
-            ))}
-          </div>
-          <svg style={{ position: 'absolute', bottom: 0, left: 20, opacity: 0.1 }} width="100" height="16" viewBox="0 0 100 16">
-            <polyline points="0,14 10,2 20,14 30,2 40,14 50,2 60,14 70,2 80,14 90,2 100,14" fill="none" stroke={b.red} strokeWidth="2" />
-          </svg>
-        </div>
-
-        {/* Activity list */}
-        <h2 style={{ fontSize: 16, fontWeight: 800, color: dark ? b.greyBlue : b.blue, fontFamily: fonts.heading, marginBottom: 14 }}>Activities</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {topic.activities.map((act) => (
-            <div key={act.id} onClick={() => navigate(`/activity/${act.id}`)}
-              style={{
-                padding: '16px 18px', borderRadius: 16, cursor: 'pointer',
-                background: dark ? 'rgba(255,255,255,0.04)' : `${b.white}EE`,
-                border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : b.greyBlue}`,
-                transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 14,
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = dark ? '0 6px 20px rgba(0,0,0,0.3)' : '0 6px 20px rgba(28,48,72,0.08)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+        ) : err ? (
+          <div>
+            <div style={{ color: b.red, fontFamily: fonts.body, fontWeight: 700, marginBottom: 8 }}>
+              {err}
+            </div>
+            <div
+              onClick={() => navigate('/dashboard')}
+              style={{ color: b.red, cursor: 'pointer', fontFamily: fonts.body, fontWeight: 700 }}
             >
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: dark ? 'rgba(255,255,255,0.06)' : `${b.pink}55`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <UKLCIcon type={act.iconType} size={26} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: dark ? b.greyBlue : b.blue, fontFamily: fonts.heading, marginBottom: 2 }}>{act.title}</div>
-                <div style={{ fontSize: 12, color: dark ? '#7B8FA3' : '#5A6B7D', display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <span>{act.type}</span>
-                  <span style={{ opacity: 0.4 }}>·</span>
-                  <span>{act.minutes} min</span>
-                  <span style={{ opacity: 0.4 }}>·</span>
-                  <span style={{ color: b.red, fontWeight: 700 }}>+{act.xp} XP</span>
-                </div>
-              </div>
-              <UKLCIcon type="right" size={18} color={dark ? '#4A5A6B' : '#CBD5E1'} />
+              Return to Dashboard
             </div>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <>
+            {/* Topic Header */}
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 28,
+                fontWeight: 900,
+                color: dark ? b.greyBlue : b.blue,
+                fontFamily: fonts.heading,
+              }}
+            >
+              {topic.title}
+            </h1>
+
+            <div
+              style={{
+                marginTop: 8,
+                color: dark ? '#7B8FA3' : '#5A6B7D',
+                fontFamily: fonts.body,
+                lineHeight: 1.5,
+              }}
+            >
+              {topic.description}
+            </div>
+
+            {/* Meta */}
+            <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 999,
+                  background: dark ? 'rgba(255,255,255,0.06)' : b.greyBlue,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: fonts.body,
+                  color: dark ? b.greyBlue : b.blue,
+                }}
+              >
+                Level: {topic.level}
+              </span>
+              <span
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 999,
+                  background: dark ? 'rgba(255,255,255,0.06)' : b.greyBlue,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: fonts.body,
+                  color: dark ? b.greyBlue : b.blue,
+                }}
+              >
+                Ages: {topic.age_group}
+              </span>
+            </div>
+
+            {/* Activities */}
+            <h2
+              style={{
+                marginTop: 22,
+                fontSize: 16,
+                fontWeight: 900,
+                color: dark ? b.greyBlue : b.blue,
+                fontFamily: fonts.heading,
+              }}
+            >
+              Activities
+            </h2>
+
+            {activities.length === 0 ? (
+              <div style={{ color: dark ? '#7B8FA3' : '#5A6B7D', fontFamily: fonts.body }}>
+                No activities found for this topic.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {activities.map((a) => (
+                  <div
+                    key={a.id}
+                    style={{
+                      padding: '14px 16px',
+                      borderRadius: 16,
+                      border: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : b.greyBlue}`,
+                      background: dark ? 'rgba(255,255,255,0.03)' : `${b.white}CC`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: fonts.heading,
+                        fontWeight: 800,
+                        color: dark ? b.greyBlue : b.blue,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {a.order_number}. {a.title}
+                    </div>
+                    <div style={{ fontFamily: fonts.body, color: dark ? '#7B8FA3' : '#5A6B7D', fontSize: 12 }}>
+                      Type: {a.activity_type}
+                    </div>
+
+                    {/* Optional: route to activity page if you have one */}
+                    {/* <button onClick={() => navigate(`/activity/${a.id}`)}>Open</button> */}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </PageShell>
   );
