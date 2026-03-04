@@ -210,10 +210,10 @@ export default function Dashboard({ user, dark, toggleTheme }) {
   }, []);
 
   const navItems = [
-    { icon: 'home', label: 'Home', active: true },
-    { icon: 'chart', label: 'Progress', active: false },
-    { icon: 'badge', label: 'Badges', active: false },
-    { icon: 'user', label: 'Profile', active: false },
+    { icon: 'home', label: 'Home', active: true, action: () => navigate('/dashboard') },
+    { icon: 'chart', label: 'Progress', active: false, action: () => {} },
+    { icon: 'badge', label: 'Badges', active: false, action: () => {} },
+    { icon: 'user', label: 'Profile', active: false, action: () => navigate('/profile') },
   ];
 
   return (
@@ -298,7 +298,10 @@ export default function Dashboard({ user, dark, toggleTheme }) {
                 </div>
 
                 <div
-                  onClick={() => setShowProfileMenu(false)}
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    navigate('/profile');
+                  }}
                   style={{
                     padding: '10px 14px',
                     fontSize: 13,
@@ -311,7 +314,7 @@ export default function Dashboard({ user, dark, toggleTheme }) {
                   onMouseEnter={(e) => (e.target.style.background = dark ? 'rgba(255,255,255,0.06)' : b.greyBlue)}
                   onMouseLeave={(e) => (e.target.style.background = 'transparent')}
                 >
-                  Profile (coming soon)
+                  Profile
                 </div>
 
                 <div
@@ -447,6 +450,7 @@ export default function Dashboard({ user, dark, toggleTheme }) {
         {navItems.map((item, i) => (
           <div
             key={i}
+            onClick={item.action}
             style={{
               flex: 1,
               maxWidth: 80,
