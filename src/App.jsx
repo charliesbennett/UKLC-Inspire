@@ -2,11 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import useTheme from './hooks/useTheme';
-
 import LoginPage from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import TopicView from './pages/TopicView';
 import ActivityPlayer from './pages/ActivityPlayer';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -36,8 +36,11 @@ function App() {
           <TopicView dark={dark} toggleTheme={toggle} />
         } />
         <Route path="/activity/:activityId" element={
-  <ActivityPlayer user={user} dark={dark} toggleTheme={toggle} />
-} />
+          <ActivityPlayer user={user} dark={dark} toggleTheme={toggle} />
+        } />
+        <Route path="/profile" element={
+          <ProfilePage darkMode={dark} />
+        } />
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
     </BrowserRouter>
