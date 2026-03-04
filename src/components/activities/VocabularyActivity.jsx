@@ -23,14 +23,19 @@ export default function VocabularyActivity({ content, onComplete, onProgress }) 
   const currentCard = flashcards[currentIndex];
   const progress = flashcards.length > 0 ? (knownCards.size / flashcards.length) * 100 : 0;
 
+  const finishActivity = (finalKnownCards) => {
+    const finalScore = Math.round((finalKnownCards.size / flashcards.length) * 100);
+    onComplete?.(finalScore);
+    setShowResults(true);
+  };
+
   const handleNext = () => {
     if (currentIndex < flashcards.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setIsFlipped(false);
     } else {
-      const finalScore = Math.round((knownCards.size / flashcards.length) * 100);
-      onComplete?.(finalScore);
-      setShowResults(true);
+      // Use current knownCards state (not stale when called from handleMarkKnown)
+      finishActivity(knownCards);
     }
   };
 
@@ -50,7 +55,14 @@ export default function VocabularyActivity({ content, onComplete, onProgress }) 
 
     const partialScore = Math.round((newKnownCards.size / flashcards.length) * 100);
     onProgress?.(partialScore);
-    handleNext();
+
+    // If this is the last card, finish with the updated set directly
+    if (currentIndex >= flashcards.length - 1) {
+      finishActivity(newKnownCards);
+    } else {
+      setCurrentIndex(currentIndex + 1);
+      setIsFlipped(false);
+    }
   };
 
   const handleReset = () => {
