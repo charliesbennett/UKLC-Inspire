@@ -7,6 +7,14 @@ import BrandPatterns from '../components/ui/BrandPatterns';
 import UKLCLogo from '../components/ui/UKLCLogo';
 import UKLCIcon from '../components/ui/UKLCIcon';
 
+// Activity ID ranges per topic
+const TOPIC_ACTIVITY_IDS = {
+  1: [4, 5, 6, 10],
+  2: [11, 12, 13, 14],
+  3: [15, 16, 17, 18],
+  4: [19, 20, 21, 22],
+};
+
 const StatCard = ({ iconType, value, label, accentBg, dark }) => (
   <div
     style={{
@@ -165,6 +173,10 @@ export default function Dashboard({ user, dark, toggleTheme }) {
   const [loadingTopics, setLoadingTopics] = useState(true);
   const [topicsError, setTopicsError] = useState(null);
 
+  // Live stats from student_stats and student_progress
+  const [stats, setStats] = useState({ streak: 0, xp: 0, badges: 0 });
+  const [completedActivityIds, setCompletedActivityIds] = useState(new Set());
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
@@ -176,24 +188,20 @@ export default function Dashboard({ user, dark, toggleTheme }) {
         setLoadingTopics(true);
         setTopicsError(null);
 
-        console.log('[Dashboard] Fetching topics...');
-
         const { data, error } = await supabase
           .from('topics')
           .select('id, title, description, slug, order_number')
           .eq('is_published', true)
           .order('order_number', { ascending: true });
 
-        console.log('[Dashboard] Topics response:', { data, error });
-
         if (error) throw error;
 
         const mapped = (data || []).map((t) => ({
           id: String(t.id),
+          numericId: t.id,
           iconType: pickIcon(t.slug, t.title),
           title: t.title,
           description: t.description || '',
-          progress: 0, // TODO: compute from user progress later
         }));
 
         setTopics(mapped);
@@ -208,6 +216,53 @@ export default function Dashboard({ user, dark, toggleTheme }) {
 
     fetchTopics();
   }, []);
+
+  // Fetch live stats
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchStats = async () => {
+      try {
+        // Fetch student_stats
+        const { data: statsData } = await supabase
+          .from('student_stats')
+          .select('total_xp, current_streak, badges')
+          .eq('student_id', user.id)
+          .single();
+
+        if (statsData) {
+          setStats({
+            streak: statsData.current_streak || 0,
+            xp: statsData.total_xp || 0,
+            badges: Array.isArray(statsData.badges) ? statsData.badges.length : 0,
+          });
+        }
+
+        // Fetch completed activities for progress bars
+        const { data: progressData } = await supabase
+          .from('student_progress')
+          .select('activity_id')
+          .eq('student_id', user.id)
+          .eq('completed', true);
+
+        if (progressData) {
+          setCompletedActivityIds(new Set(progressData.map((p) => p.activity_id)));
+        }
+      } catch (e) {
+        console.error('[Dashboard] Error fetching stats:', e);
+      }
+    };
+
+    fetchStats();
+  }, [user?.id]);
+
+  // Calculate topic progress from completed activity IDs
+  const getTopicProgress = (numericTopicId) => {
+    const ids = TOPIC_ACTIVITY_IDS[numericTopicId] || [];
+    if (ids.length === 0) return 0;
+    const completed = ids.filter((id) => completedActivityIds.has(id)).length;
+    return Math.round((completed / ids.length) * 100);
+  };
 
   const navItems = [
     { icon: 'home', label: 'Home', active: true, action: () => navigate('/dashboard') },
@@ -350,7 +405,6 @@ export default function Dashboard({ user, dark, toggleTheme }) {
             {name}
           </h1>
 
-          {/* NOTE: This badge is currently hardcoded; later you can pull from user profile */}
           <div
             style={{
               display: 'inline-flex',
@@ -369,11 +423,11 @@ export default function Dashboard({ user, dark, toggleTheme }) {
           </div>
         </div>
 
-        {/* Stats (still hardcoded for now) */}
+        {/* Live Stats */}
         <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-          <StatCard iconType="flame" value="3" label="Streak" accentBg={`${b.yellow}44`} dark={dark} />
-          <StatCard iconType="star" value="450" label="XP" accentBg={`${b.pink}88`} dark={dark} />
-          <StatCard iconType="trophy" value="2" label="Badges" accentBg={b.greyBlue} dark={dark} />
+          <StatCard iconType="flame" value={stats.streak} label="Streak" accentBg={`${b.yellow}44`} dark={dark} />
+          <StatCard iconType="star" value={stats.xp} label="XP" accentBg={`${b.pink}88`} dark={dark} />
+          <StatCard iconType="trophy" value={stats.badges} label="Badges" accentBg={b.greyBlue} dark={dark} />
         </div>
 
         {/* Daily goal (still hardcoded for now) */}
@@ -425,7 +479,15 @@ export default function Dashboard({ user, dark, toggleTheme }) {
             </div>
           ) : (
             topics.map((t) => (
-              <TopicCard key={t.id} {...t} dark={dark} onClick={() => navigate(`/topic/${t.id}`)} />
+              <TopicCard
+                key={t.id}
+                iconType={t.iconType}
+                title={t.title}
+                description={t.description}
+                progress={getTopicProgress(t.numericId)}
+                dark={dark}
+                onClick={() => navigate(`/topic/${t.id}`)}
+              />
             ))
           )}
         </div>
