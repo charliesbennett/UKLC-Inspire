@@ -1,16 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-
-// ── Brand tokens (matching theme.js) ──────────────────────────
-const BRAND = {
-  blue: '#1C3048',
-  red: '#EC273B',
-  neonYellow: '#F0F279',
-  pink: '#FAD7D8',
-  greyBlue: '#E6EEF3',
-  white: '#FFFFFF',
-};
+import { colors as b, fonts } from '../styles/theme';
+import { PageShell } from '../components/ui/SharedUI';
+import UKLCIcon from '../components/ui/UKLCIcon';
 
 const ProfilePage = ({ darkMode }) => {
   const navigate = useNavigate();
@@ -21,10 +14,10 @@ const ProfilePage = ({ darkMode }) => {
 
   // ── Topic metadata ────────────────────────────────────────
   const TOPICS = [
-    { id: 1, title: 'Food & Restaurants', icon: '🍽️', activityCount: 4 },
-    { id: 2, title: 'Music & Culture', icon: '🎵', activityCount: 4 },
-    { id: 3, title: 'Travel & Adventure', icon: '✈️', activityCount: 4 },
-    { id: 4, title: 'AI & Technology', icon: '🤖', activityCount: 4 },
+    { id: 1, title: 'Food & Restaurants', iconType: 'food', activityCount: 4 },
+    { id: 2, title: 'Music & Culture', iconType: 'music', activityCount: 4 },
+    { id: 3, title: 'Travel & Adventure', iconType: 'plane', activityCount: 4 },
+    { id: 4, title: 'AI & Technology', iconType: 'robot', activityCount: 4 },
   ];
 
   useEffect(() => {
@@ -33,7 +26,6 @@ const ProfilePage = ({ darkMode }) => {
         const { data: { user: authUser } } = await supabase.auth.getUser();
         setUser(authUser);
 
-        // Attempt to fetch progress — table may not exist yet
         try {
           const { data: progressData } = await supabase
             .from('user_progress')
@@ -67,8 +59,16 @@ const ProfilePage = ({ darkMode }) => {
   const totalXP = progress.reduce((sum, p) => sum + (p.xp_earned || 0), 0);
   const totalActivities = TOPICS.reduce((sum, t) => sum + t.activityCount, 0);
 
+  // ── Trial calculation ─────────────────────────────────────
+  const trialDays = 30;
+  const createdAt = user?.created_at ? new Date(user.created_at) : new Date();
+  const trialEnd = new Date(createdAt);
+  trialEnd.setDate(trialEnd.getDate() + trialDays);
+  const now = new Date();
+  const daysLeft = Math.max(0, Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24)));
+  const trialProgress = Math.min(100, Math.round(((trialDays - daysLeft) / trialDays) * 100));
+
   const getTopicProgress = (topicId) => {
-    // Map topic IDs to activity ID ranges
     const ranges = { 1: [4, 5, 6, 10], 2: [11, 12, 13, 14], 3: [15, 16, 17, 18], 4: [19, 20, 21, 22] };
     const ids = ranges[topicId] || [];
     const completed = progress.filter(p => p.completed && ids.includes(p.activity_id)).length;
@@ -76,20 +76,16 @@ const ProfilePage = ({ darkMode }) => {
   };
 
   // ── Palette ───────────────────────────────────────────────
-  const bg = darkMode ? '#0F1A2B' : BRAND.greyBlue;
-  const cardBg = darkMode ? '#1A2640' : BRAND.white;
-  const textPrimary = darkMode ? BRAND.greyBlue : BRAND.blue;
-  const textSecondary = darkMode ? '#8BA3BF' : '#5A7A9A';
-  const borderColor = darkMode ? '#2A3E5C' : '#D0DCE6';
+  const textPrimary = darkMode ? b.greyBlue : b.blue;
+  const textSecondary = darkMode ? '#7B8FA3' : '#5A6B7D';
+  const borderColor = darkMode ? 'rgba(255,255,255,0.06)' : b.greyBlue;
+  const cardBg = darkMode ? 'rgba(255,255,255,0.04)' : `${b.white}EE`;
 
   // ── Styles ────────────────────────────────────────────────
   const styles = {
-    page: {
-      minHeight: '100vh',
-      background: bg,
-      fontFamily: "'Open Sans', sans-serif",
-      padding: '24px 16px 80px',
-      maxWidth: 640,
+    container: {
+      padding: '22px 20px 100px',
+      maxWidth: 460,
       margin: '0 auto',
     },
     backButton: {
@@ -99,7 +95,7 @@ const ProfilePage = ({ darkMode }) => {
       background: 'none',
       border: 'none',
       color: textSecondary,
-      fontFamily: "'Open Sans', sans-serif",
+      fontFamily: fonts.body,
       fontSize: 14,
       cursor: 'pointer',
       padding: '4px 0',
@@ -107,26 +103,26 @@ const ProfilePage = ({ darkMode }) => {
     },
     header: {
       textAlign: 'center',
-      marginBottom: 32,
+      marginBottom: 28,
     },
     avatar: {
       width: 80,
       height: 80,
       borderRadius: '50%',
-      background: `linear-gradient(135deg, ${BRAND.red}, ${BRAND.blue})`,
+      background: `linear-gradient(135deg, ${b.red}, ${b.blue})`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       margin: '0 auto 16px',
       fontSize: 32,
-      fontFamily: "'Raleway', sans-serif",
+      fontFamily: fonts.heading,
       fontWeight: 700,
-      color: BRAND.white,
+      color: b.white,
       letterSpacing: 1,
       boxShadow: darkMode ? '0 4px 20px rgba(0,0,0,0.4)' : '0 4px 20px rgba(28,48,72,0.15)',
     },
     name: {
-      fontFamily: "'Raleway', sans-serif",
+      fontFamily: fonts.heading,
       fontWeight: 700,
       fontSize: 26,
       color: textPrimary,
@@ -136,23 +132,25 @@ const ProfilePage = ({ darkMode }) => {
       fontSize: 14,
       color: textSecondary,
       margin: 0,
+      fontFamily: fonts.body,
     },
     memberSince: {
       fontSize: 12,
       color: textSecondary,
       marginTop: 6,
       opacity: 0.7,
+      fontFamily: fonts.body,
     },
     card: {
       background: cardBg,
-      borderRadius: 14,
+      borderRadius: 18,
       padding: '20px 24px',
-      marginBottom: 16,
+      marginBottom: 14,
       border: `1px solid ${borderColor}`,
-      boxShadow: darkMode ? '0 2px 8px rgba(0,0,0,0.2)' : '0 2px 8px rgba(28,48,72,0.06)',
+      backdropFilter: 'blur(10px)',
     },
     cardTitle: {
-      fontFamily: "'Raleway', sans-serif",
+      fontFamily: fonts.heading,
       fontWeight: 700,
       fontSize: 16,
       color: textPrimary,
@@ -161,27 +159,29 @@ const ProfilePage = ({ darkMode }) => {
     statsGrid: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr 1fr',
-      gap: 12,
+      gap: 10,
     },
     statBox: {
       textAlign: 'center',
       padding: '12px 8px',
-      borderRadius: 10,
-      background: darkMode ? '#0F1A2B' : BRAND.greyBlue,
+      borderRadius: 12,
+      background: darkMode ? 'rgba(255,255,255,0.05)' : b.greyBlue,
     },
     statValue: {
-      fontFamily: "'Raleway', sans-serif",
+      fontFamily: fonts.heading,
       fontWeight: 700,
       fontSize: 24,
-      color: BRAND.red,
+      color: b.red,
       margin: 0,
     },
     statLabel: {
-      fontSize: 11,
+      fontSize: 10,
       color: textSecondary,
       marginTop: 4,
       textTransform: 'uppercase',
       letterSpacing: '0.5px',
+      fontWeight: 600,
+      fontFamily: fonts.body,
     },
     topicRow: {
       display: 'flex',
@@ -196,30 +196,31 @@ const ProfilePage = ({ darkMode }) => {
       gap: 12,
     },
     topicIcon: {
-      fontSize: 20,
       width: 36,
       height: 36,
-      borderRadius: 8,
+      borderRadius: 10,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: darkMode ? '#0F1A2B' : BRAND.greyBlue,
+      background: darkMode ? 'rgba(255,255,255,0.06)' : b.greyBlue,
     },
     topicTitle: {
       fontSize: 14,
       fontWeight: 600,
       color: textPrimary,
+      fontFamily: fonts.heading,
     },
     topicProgressText: {
-      fontSize: 13,
+      fontSize: 12,
       color: textSecondary,
       fontVariantNumeric: 'tabular-nums',
+      fontFamily: fonts.body,
     },
     progressBarOuter: {
       width: 80,
       height: 6,
       borderRadius: 3,
-      background: darkMode ? '#0F1A2B' : BRAND.greyBlue,
+      background: darkMode ? 'rgba(255,255,255,0.08)' : b.greyBlue,
       overflow: 'hidden',
       marginTop: 4,
     },
@@ -227,15 +228,14 @@ const ProfilePage = ({ darkMode }) => {
       width: '100%',
       padding: '14px 24px',
       borderRadius: 12,
-      border: `1.5px solid ${BRAND.red}`,
+      border: `1.5px solid ${b.red}`,
       background: 'transparent',
-      color: BRAND.red,
-      fontFamily: "'Raleway', sans-serif",
+      color: b.red,
+      fontFamily: fonts.heading,
       fontWeight: 700,
       fontSize: 15,
       cursor: 'pointer',
       transition: 'all 0.2s ease',
-      marginTop: 8,
     },
     noProgressNote: {
       fontSize: 13,
@@ -243,14 +243,17 @@ const ProfilePage = ({ darkMode }) => {
       textAlign: 'center',
       padding: '8px 0',
       fontStyle: 'italic',
+      fontFamily: fonts.body,
     },
   };
 
   if (loading) {
     return (
-      <div style={{ ...styles.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: textSecondary, fontSize: 15 }}>Loading profile...</p>
-      </div>
+      <PageShell dark={darkMode}>
+        <div style={{ ...styles.container, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+          <p style={{ color: textSecondary, fontSize: 15, fontFamily: fonts.body }}>Loading profile...</p>
+        </div>
+      </PageShell>
     );
   }
 
@@ -258,115 +261,222 @@ const ProfilePage = ({ darkMode }) => {
   const hasProgress = progress.length > 0;
 
   return (
-    <div style={styles.page}>
-      {/* Back to Dashboard */}
-      <button style={styles.backButton} onClick={() => navigate('/dashboard')}>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        Back to Dashboard
-      </button>
+    <PageShell dark={darkMode}>
+      <div style={styles.container}>
+        {/* Back to Dashboard */}
+        <button style={styles.backButton} onClick={() => navigate('/dashboard')}>
+          <UKLCIcon type="back" size={16} color={textSecondary} />
+          Back to Dashboard
+        </button>
 
-      {/* Header / Avatar */}
-      <div style={styles.header}>
-        <div style={styles.avatar}>{initials}</div>
-        <h1 style={styles.name}>{displayName}</h1>
-        <p style={styles.email}>{email}</p>
-        {memberSince && <p style={styles.memberSince}>Member since {memberSince}</p>}
-      </div>
-
-      {/* Stats Overview */}
-      <div style={styles.card}>
-        <h2 style={styles.cardTitle}>Your Progress</h2>
-        <div style={styles.statsGrid}>
-          <div style={styles.statBox}>
-            <p style={styles.statValue}>{completedActivities}</p>
-            <p style={styles.statLabel}>Completed</p>
-          </div>
-          <div style={styles.statBox}>
-            <p style={styles.statValue}>{totalActivities - completedActivities}</p>
-            <p style={styles.statLabel}>Remaining</p>
-          </div>
-          <div style={styles.statBox}>
-            <p style={styles.statValue}>{totalXP}</p>
-            <p style={styles.statLabel}>Total XP</p>
-          </div>
+        {/* Header / Avatar */}
+        <div style={styles.header}>
+          <div style={styles.avatar}>{initials}</div>
+          <h1 style={styles.name}>{displayName}</h1>
+          <p style={styles.email}>{email}</p>
+          {memberSince && <p style={styles.memberSince}>Member since {memberSince}</p>}
         </div>
-        {!hasProgress && (
-          <p style={styles.noProgressNote}>Complete activities to start tracking your progress!</p>
-        )}
-      </div>
 
-      {/* Topic Breakdown */}
-      <div style={styles.card}>
-        <h2 style={styles.cardTitle}>Topics</h2>
-        {TOPICS.map((topic, idx) => {
-          const tp = getTopicProgress(topic.id);
-          const pct = tp.total > 0 ? Math.round((tp.completed / tp.total) * 100) : 0;
-          return (
-            <div
-              key={topic.id}
-              style={{
-                ...styles.topicRow,
-                ...(idx === TOPICS.length - 1 ? { borderBottom: 'none' } : {}),
-              }}
-            >
-              <div style={styles.topicInfo}>
-                <div style={styles.topicIcon}>{topic.icon}</div>
-                <div>
-                  <div style={styles.topicTitle}>{topic.title}</div>
-                  <div style={styles.topicProgressText}>{tp.completed}/{tp.total} activities</div>
+        {/* Stats Overview */}
+        <div style={styles.card}>
+          <h2 style={styles.cardTitle}>Your Progress</h2>
+          <div style={styles.statsGrid}>
+            <div style={styles.statBox}>
+              <p style={styles.statValue}>{completedActivities}</p>
+              <p style={styles.statLabel}>Completed</p>
+            </div>
+            <div style={styles.statBox}>
+              <p style={styles.statValue}>{totalActivities - completedActivities}</p>
+              <p style={styles.statLabel}>Remaining</p>
+            </div>
+            <div style={styles.statBox}>
+              <p style={styles.statValue}>{totalXP}</p>
+              <p style={styles.statLabel}>Total XP</p>
+            </div>
+          </div>
+          {!hasProgress && (
+            <p style={styles.noProgressNote}>Complete activities to start tracking your progress!</p>
+          )}
+        </div>
+
+        {/* Topic Breakdown */}
+        <div style={styles.card}>
+          <h2 style={styles.cardTitle}>Topics</h2>
+          {TOPICS.map((topic, idx) => {
+            const tp = getTopicProgress(topic.id);
+            const pct = tp.total > 0 ? Math.round((tp.completed / tp.total) * 100) : 0;
+            return (
+              <div
+                key={topic.id}
+                style={{
+                  ...styles.topicRow,
+                  ...(idx === TOPICS.length - 1 ? { borderBottom: 'none' } : {}),
+                }}
+              >
+                <div style={styles.topicInfo}>
+                  <div style={styles.topicIcon}>
+                    <UKLCIcon type={topic.iconType} size={18} />
+                  </div>
+                  <div>
+                    <div style={styles.topicTitle}>{topic.title}</div>
+                    <div style={styles.topicProgressText}>{tp.completed}/{tp.total} activities</div>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: pct === 100 ? '#22C55E' : textSecondary, fontFamily: fonts.body }}>
+                    {pct}%
+                  </div>
+                  <div style={styles.progressBarOuter}>
+                    <div
+                      style={{
+                        width: `${pct}%`,
+                        height: '100%',
+                        borderRadius: 3,
+                        background: pct === 100
+                          ? '#22C55E'
+                          : `linear-gradient(90deg, ${b.pink}, ${b.yellow})`,
+                        transition: 'width 0.5s ease',
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: pct === 100 ? '#22C55E' : textSecondary }}>
-                  {pct}%
-                </div>
-                <div style={styles.progressBarOuter}>
-                  <div
-                    style={{
-                      width: `${pct}%`,
-                      height: '100%',
-                      borderRadius: 3,
-                      background: pct === 100
-                        ? '#22C55E'
-                        : `linear-gradient(90deg, ${BRAND.red}, ${BRAND.blue})`,
-                      transition: 'width 0.5s ease',
-                    }}
-                  />
-                </div>
+            );
+          })}
+        </div>
+
+        {/* Billing / Trial */}
+        <div style={styles.card}>
+          <h2 style={styles.cardTitle}>Account & Billing</h2>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 12,
+          }}>
+            <div>
+              <div style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: textPrimary,
+                fontFamily: fonts.heading,
+                marginBottom: 2,
+              }}>
+                Free Trial
+              </div>
+              <div style={{
+                fontSize: 12,
+                color: textSecondary,
+                fontFamily: fonts.body,
+              }}>
+                {daysLeft > 0
+                  ? `${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining`
+                  : 'Trial expired'}
               </div>
             </div>
-          );
-        })}
-      </div>
+            <div style={{
+              padding: '5px 12px',
+              borderRadius: 20,
+              background: daysLeft > 7
+                ? (darkMode ? 'rgba(34,197,94,0.15)' : '#DCFCE7')
+                : daysLeft > 0
+                  ? (darkMode ? 'rgba(251,191,36,0.15)' : '#FEF3C7')
+                  : (darkMode ? 'rgba(236,39,59,0.15)' : '#FEE2E2'),
+              fontSize: 11,
+              fontWeight: 700,
+              color: daysLeft > 7 ? '#22C55E' : daysLeft > 0 ? '#F59E0B' : b.red,
+              fontFamily: fonts.body,
+            }}>
+              {daysLeft > 0 ? 'Active' : 'Expired'}
+            </div>
+          </div>
 
-      {/* Sign Out */}
-      <div style={styles.card}>
-        <button
-          style={{
-            ...styles.signOutButton,
-            ...(signingOut ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
-          }}
-          onClick={handleSignOut}
-          disabled={signingOut}
-          onMouseEnter={(e) => {
-            if (!signingOut) {
-              e.target.style.background = BRAND.red;
-              e.target.style.color = BRAND.white;
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!signingOut) {
-              e.target.style.background = 'transparent';
-              e.target.style.color = BRAND.red;
-            }
-          }}
-        >
-          {signingOut ? 'Signing out...' : 'Sign Out'}
-        </button>
+          {/* Trial progress bar */}
+          <div style={{
+            height: 6,
+            borderRadius: 3,
+            background: darkMode ? 'rgba(255,255,255,0.08)' : b.greyBlue,
+            overflow: 'hidden',
+            marginBottom: 14,
+          }}>
+            <div style={{
+              width: `${trialProgress}%`,
+              height: '100%',
+              borderRadius: 3,
+              background: daysLeft > 7
+                ? `linear-gradient(90deg, #22C55E, #4ADE80)`
+                : daysLeft > 0
+                  ? `linear-gradient(90deg, #F59E0B, #FBBF24)`
+                  : `linear-gradient(90deg, ${b.red}, #F87171)`,
+              transition: 'width 0.5s ease',
+            }} />
+          </div>
+
+          <div style={{
+            padding: '12px 16px',
+            borderRadius: 12,
+            background: darkMode ? 'rgba(255,255,255,0.03)' : b.greyBlue + '88',
+            border: `1px solid ${borderColor}`,
+          }}>
+            <div style={{
+              fontSize: 12,
+              color: textSecondary,
+              fontFamily: fonts.body,
+              lineHeight: 1.5,
+            }}>
+              Your free trial includes full access to all topics and activities. Upgrade to a school licence for unlimited access for your students.
+            </div>
+            <button
+              style={{
+                marginTop: 10,
+                padding: '8px 16px',
+                borderRadius: 8,
+                border: 'none',
+                background: b.red,
+                color: b.white,
+                fontFamily: fonts.heading,
+                fontWeight: 700,
+                fontSize: 12,
+                cursor: 'pointer',
+                boxShadow: `0 2px 8px ${b.red}33`,
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => { e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = `0 4px 12px ${b.red}55`; }}
+              onMouseLeave={(e) => { e.target.style.transform = 'none'; e.target.style.boxShadow = `0 2px 8px ${b.red}33`; }}
+            >
+              Upgrade Plan
+            </button>
+          </div>
+        </div>
+
+        {/* Sign Out */}
+        <div style={styles.card}>
+          <button
+            style={{
+              ...styles.signOutButton,
+              ...(signingOut ? { opacity: 0.5, cursor: 'not-allowed' } : {}),
+            }}
+            onClick={handleSignOut}
+            disabled={signingOut}
+            onMouseEnter={(e) => {
+              if (!signingOut) {
+                e.target.style.background = b.red;
+                e.target.style.color = b.white;
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!signingOut) {
+                e.target.style.background = 'transparent';
+                e.target.style.color = b.red;
+              }
+            }}
+          >
+            {signingOut ? 'Signing out...' : 'Sign Out'}
+          </button>
+        </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 
