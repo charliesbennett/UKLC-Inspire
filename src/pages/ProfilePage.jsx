@@ -5,10 +5,22 @@ import { colors as b, fonts } from '../styles/theme';
 import { PageShell } from '../components/ui/SharedUI';
 import UKLCIcon from '../components/ui/UKLCIcon';
 
+// Badge display names
+const BADGE_NAMES = {
+  first_activity: 'First Steps',
+  streak_3: 'On Fire',
+  streak_7: 'Week Warrior',
+  perfect_score: 'Perfectionist',
+  xp_500: 'Rising Star',
+  xp_1000: 'Superstar',
+  all_activities: 'Explorer',
+};
+
 const ProfilePage = ({ darkMode }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [progress, setProgress] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
 
@@ -26,14 +38,27 @@ const ProfilePage = ({ darkMode }) => {
         const { data: { user: authUser } } = await supabase.auth.getUser();
         setUser(authUser);
 
+        // Fetch progress from student_progress
         try {
           const { data: progressData } = await supabase
-            .from('user_progress')
-            .select('activity_id, completed, xp_earned, completed_at')
-            .eq('user_id', authUser.id);
+            .from('student_progress')
+            .select('activity_id, completed, score, time_spent_seconds, attempts')
+            .eq('student_id', authUser.id);
           setProgress(progressData || []);
         } catch {
           setProgress([]);
+        }
+
+        // Fetch stats from student_stats
+        try {
+          const { data: statsData } = await supabase
+            .from('student_stats')
+            .select('*')
+            .eq('student_id', authUser.id)
+            .single();
+          setStats(statsData || null);
+        } catch {
+          setStats(null);
         }
       } catch (err) {
         console.error('Error fetching profile data:', err);
@@ -56,7 +81,9 @@ const ProfilePage = ({ darkMode }) => {
   const memberSince = user?.created_at ? new Date(user.created_at).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }) : '';
 
   const completedActivities = progress.filter(p => p.completed).length;
-  const totalXP = progress.reduce((sum, p) => sum + (p.xp_earned || 0), 0);
+  const totalXP = stats?.total_xp || 0;
+  const currentStreak = stats?.current_streak || 0;
+  const badges = stats?.badges || [];
   const totalActivities = TOPICS.reduce((sum, t) => sum + t.activityCount, 0);
 
   // ── Trial calculation ─────────────────────────────────────
@@ -286,16 +313,45 @@ const ProfilePage = ({ darkMode }) => {
               <p style={styles.statLabel}>Completed</p>
             </div>
             <div style={styles.statBox}>
-              <p style={styles.statValue}>{totalActivities - completedActivities}</p>
-              <p style={styles.statLabel}>Remaining</p>
-            </div>
-            <div style={styles.statBox}>
               <p style={styles.statValue}>{totalXP}</p>
               <p style={styles.statLabel}>Total XP</p>
+            </div>
+            <div style={styles.statBox}>
+              <p style={styles.statValue}>{currentStreak}</p>
+              <p style={styles.statLabel}>Day Streak</p>
             </div>
           </div>
           {!hasProgress && (
             <p style={styles.noProgressNote}>Complete activities to start tracking your progress!</p>
+          )}
+        </div>
+
+        {/* Badges */}
+        <div style={styles.card}>
+          <h2 style={styles.cardTitle}>Badges</h2>
+          {badges.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {badges.map((badgeKey) => (
+                <div key={badgeKey} style={{
+                  padding: '6px 14px',
+                  borderRadius: 20,
+                  background: darkMode ? 'rgba(240,242,121,0.1)' : `${b.yellow}44`,
+                  border: `1px solid ${darkMode ? 'rgba(240,242,121,0.2)' : `${b.yellow}88`}`,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: darkMode ? b.yellow : b.blue,
+                  fontFamily: fonts.body,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}>
+                  <UKLCIcon type="badge" size={14} />
+                  {BADGE_NAMES[badgeKey] || badgeKey}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={styles.noProgressNote}>Complete activities to earn badges!</p>
           )}
         </div>
 
